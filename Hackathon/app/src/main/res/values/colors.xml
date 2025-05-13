@@ -2,18 +2,62 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="dark_green">#626F47</color>
-    <color name="light_green">#A4B465</color>
-    <color name="beige">#F5ECD5</color>
-    <color name="orange">#F0BB78</color>
 
+    <color name="user_dark_green">#626F47</color>
+    <color name="user_light_green">#A4B465</color>
+    <color name="user_beige">#F5ECD5</color>
+    <color name="user_orange">#F0BB78</color>
 
-    <color name="green_seedling">#A8E6A4</color>
-    <color name="green_sapling">#77DD77</color>
-    <color name="green_tree">#3EBD3E</color>
-    <color name="blue_drop">#A0D2DB</color>
-    <color name="grey_500">#9E9E9E</color>
-    <color name="colorPrimary">#6200EE</color>
-    <color name="colorPrimaryDark">#3700B3</color>
-    <color name="colorAccent">#03DAC5</color>
+    <color name="app_primary">@color/user_dark_green</color>
+    <color name="app_on_primary">@color/white</color>
+    <color name="app_primary_light">#CFD8B9</color>
+    <color name="app_background">@color/user_beige</color>
+    <color name="app_on_background">#3E2723</color>
+    <color name="app_card_background">@color/white</color>
+    <color name="app_on_card_text_primary">#212121</color>
+    <color name="app_on_card_text_secondary">#757575</color>
+    <color name="app_date_chip_selected_bg">@color/user_light_green</color>
+
+    <color name="app_date_chip_selected_text">@color/white</color>
+    <color name="app_date_chip_unselected_bg">@color/white</color>
+    <color name="app_date_chip_unselected_text">@color/user_light_green</color>
+
+    <color name="app_button_add_new_bg">@color/white</color>
+    <color name="app_button_add_new_text">@color/user_dark_green</color>
+    <color name="app_button_add_new_icon">@color/user_dark_green</color>
+
+    <color name="app_checkbox_tint">@color/user_dark_green</color>
+    <color name="app_divider">#DCDCDC</color> <color name="app_gemini_button_stroke">@color/user_light_green</color>
+    <color name="app_gemini_button_text">@color/white</color>
+    <color name="app_gemini_button_icon">@color/user_light_green</color>
+
+    <color name="md_theme_primary">@color/app_primary</color>
+    <color name="md_theme_onPrimary">@color/app_on_primary</color>
+    <color name="md_theme_primaryContainer">@color/app_primary_light</color>
+    <color name="md_theme_onPrimaryContainer">@color/user_dark_green</color>
+
+    <color name="md_theme_secondary">@color/user_light_green</color>
+    <color name="md_theme_onSecondary">@color/black</color>
+    <color name="md_theme_secondaryContainer">#E1EDB4</color>
+    <color name="md_theme_onSecondaryContainer">#1A1E0B</color>
+
+    <color name="md_theme_tertiary">@color/user_orange</color>
+    <color name="md_theme_onTertiary">@color/black</color>
+    <color name="md_theme_tertiaryContainer">#FFE0B2</color>
+    <color name="md_theme_onTertiaryContainer">#2B1700</color>
+
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_errorContainer">#FFDAD6</color>
+    <color name="md_theme_onErrorContainer">#410002</color>
+
+    <color name="md_theme_background">@color/app_background</color>
+    <color name="md_theme_onBackground">@color/app_on_background</color>
+    <color name="md_theme_surface">@color/app_card_background</color>
+    <color name="md_theme_onSurface">@color/app_on_card_text_primary</color>
+    <color name="md_theme_surfaceVariant">@color/app_date_chip_unselected_bg</color>
+    <color name="md_theme_onSurfaceVariant">@color/app_on_card_text_secondary</color>
+    <color name="md_theme_outline">#7A757F</color>
+
+    <color name="app_primary_light_transparent">#33CFD8B9</color>
 </resources>

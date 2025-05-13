@@ -1,4 +1,4 @@
-package com.example.hackathon // Kendi paket adınızı kullanın
+package com.example.hackathon // Ana paket adınız
 
 import android.app.TimePickerDialog
 import android.os.Bundle
@@ -11,39 +11,38 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.navArgs // Navigasyon argümanları için eklendi
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs // Navigasyon argümanları için
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.hackathon.R
 import com.example.hackathon.data.Task
-import com.example.hackathon.databinding.FragmentTaskListBinding
+import com.example.hackathon.databinding.FragmentTaskListBinding // ViewBinding sınıfınız
+import com.example.hackathon.tasks.TaskListAdapter // TaskListAdapter importunuz
+import com.example.hackathon.tasks.TaskViewModel // ViewModel'inizin doğru yolu
 
 // Gemini API için gerekli importlar
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
-// Gemini SDK Hata Sınıfları için Importlar
+//import com.google.ai.client.generativeai.type.InvalidApiKeyException // Aktif edildi
 import com.google.ai.client.generativeai.type.PromptBlockedException
 import com.google.ai.client.generativeai.type.UnsupportedUserLocationException
 import com.google.ai.client.generativeai.type.ServerException
 import com.google.ai.client.generativeai.type.RequestTimeoutException
 
-
-import com.example.hackathon.BuildConfig
-import com.example.hackathon.tasks.TaskListAdapter
-import com.example.hackathon.tasks.TaskViewModel
-
-
-import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.chip.Chip
+// MaterialDatePicker importu kaldırıldı, çünkü showCalendarPicker() artık kullanılmıyor.
+// Eğer başka bir yerde kullanılacaksa geri eklenebilir.
+// import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.net.ConnectException
 import java.net.UnknownHostException
-import java.text.ParseException // Tarih parse hatası için eklendi
+import java.text.ParseException // Tarih parse hatası için
 import java.text.SimpleDateFormat
 import java.util.*
-
 
 class TaskListFragment : Fragment() {
 
@@ -54,16 +53,16 @@ class TaskListFragment : Fragment() {
     private lateinit var taskListAdapter: TaskListAdapter
     private var selectedStartTimeMillis: Long? = null
 
-    // Navigasyon argümanlarını almak için
-    private val navArgs: TaskListFragmentArgs by navArgs()
+    // Navigasyon argümanlarını almak için (eğer kullanılıyorsa)
+    // Eğer bu fragment'a argümanla gelinmiyorsa bu satır ve ilgili kodlar kaldırılabilir.
+    // private val navArgs: TaskListFragmentArgs by navArgs() // nav_graph.xml'de bu fragment için argüman tanımlı olmalı
 
     // !!! ÇOK ÖNEMLİ: BU SATIRA KENDİ GERÇEK GEMINI API ANAHTARINIZI YAZIN !!!
     private val HARDCODED_GEMINI_API_KEY = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGKwKRT95g" // KENDİ GERÇEK ANAHTARINIZLA DEĞİŞTİRİN
     private val PLACEHOLDER_API_KEY_FOR_CHECK = "YOUR_ACTUAL_API_KEY_PLACEHOLDER"
-    private val EXAMPLE_API_KEY_TO_WARN_USER = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGK"
+    private val EXAMPLE_API_KEY_TO_WARN_USER = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGKwKRT95g" // Kendi örnek anahtarınızı buraya yazın
     private val TAG = "TaskListFragment"
 
-    // Gemini Model
     private val generativeModel: GenerativeModel? by lazy {
         try {
             if (HARDCODED_GEMINI_API_KEY.isBlank() ||
@@ -92,14 +91,14 @@ class TaskListFragment : Fragment() {
         }
     }
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         Log.d(TAG, "onCreateView çağrıldı.")
         _binding = FragmentTaskListBinding.inflate(inflater, container, false)
-        setHasOptionsMenu(true) // Menü için
+        // setHasOptionsMenu(true) // Eski toolbar için menü, yeni tasarımda header içinde yönetiliyor
+        Log.d(TAG, "onCreateView tamamlandı.")
         return binding.root
     }
 
@@ -107,147 +106,128 @@ class TaskListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated çağrıldı.")
 
-        setupToolbar()
-        setupRecyclerView()
-        setupFab()
-        setupItemTouchHelper()
-        setupGeminiButton()
-
-        // Navigasyondan gelen tarihi işle
-        handleNavigationArguments()
-
-        observeViewModel() // ViewModel gözlemcilerini başlat
-
-        // API Anahtarı kontrol logları (isteğe bağlı)
-        logApiKeyStatus()
+        try {
+            setupHeaderActions()
+            setupDateChips()
+            setupRecyclerView()
+            setupAddNewTaskButtonHeader()
+            setupItemTouchHelper()
+            setupGeminiButton()
+            // handleNavigationArguments() // Eğer navigasyon argümanı kullanılıyorsa çağrılmalı
+            observeViewModel()
+            logApiKeyStatus()
+        } catch (e: Exception) {
+            Log.e(TAG, "onViewCreated içinde bir kurulum sırasında hata oluştu: ${e.message}", e)
+            Snackbar.make(binding.root, "Ekran yüklenirken bir hata oluştu.", Snackbar.LENGTH_LONG).show()
+        }
+        Log.d(TAG, "onViewCreated tamamlandı.")
     }
 
-    private fun setupToolbar() {
-        // Toolbar'ı Fragment'ın kendi ActionBar'ı olarak ayarla
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbarTaskList)
-        // Başlangıç başlığını ayarla (observeViewModel içinde güncellenecek)
-        updateToolbarTitle(null, 0) // Varsayılan başlık
-    }
-
-    private fun handleNavigationArguments() {
-        val selectedDateStr = navArgs.selectedDateString
-        if (selectedDateStr != null) {
-            Log.d(TAG, "Navigasyondan gelen tarih: $selectedDateStr")
-            try {
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val date = sdf.parse(selectedDateStr)
-                if (date != null) {
-                    val calendar = Calendar.getInstance()
-                    calendar.time = date
-                    taskViewModel.loadTasksForDate(
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH), // Calendar.MONTH 0-indexed
-                        calendar.get(Calendar.DAY_OF_MONTH)
-                    )
-                } else {
-                    Log.w(TAG, "Argümandan gelen tarih parse edilemedi (null). Varsayılan yükleniyor.")
-                    loadTodaysTasksAsFallback()
-                }
-            } catch (e: ParseException) {
-                Log.e(TAG, "Argümandan gelen tarih parse edilirken hata: $selectedDateStr", e)
-                loadTodaysTasksAsFallback()
-            }
-        } else {
-            Log.d(TAG, "Navigasyon argümanı olarak tarih gelmedi. Varsayılan (bugün) yükleniyor.")
-            // ViewModel'in init bloğu zaten todayTasks'ı yüklüyor olabilir.
-            // Ya da burada bugünün görevlerini yüklemek için loadTodaysTasksAsFallback() çağrılabilir.
-            // Eğer ViewModel.init todayTasks'ı yüklüyorsa, burası boş kalabilir
-            // veya `taskViewModel.todayTasks` gözlemcisinin tetiklenmesini bekleyebiliriz.
-            // Şimdilik, `observeViewModel` içindeki `todayTasks` gözlemcisine güveniyoruz.
+    private fun setupHeaderActions() {
+        binding.iconGridMenu.setOnClickListener {
+            Snackbar.make(binding.root, "Menü ikonu tıklandı.", Snackbar.LENGTH_SHORT).show()
+            // TODO: Menü işlevselliği (örneğin, Ayarlar'a gitmek, Bahçe ekranına gitmek vb.)
+            // findNavController().navigate(R.id.action_taskListFragment_to_gardenFragment) // Örnek navigasyon
+        }
+        binding.iconHistoryClock.setOnClickListener {
+            Snackbar.make(binding.root, "Geçmiş/Takvim ikonu tıklandı.", Snackbar.LENGTH_SHORT).show()
+            // TODO: Takvim görünümü veya görev geçmişi işlevselliği
         }
     }
 
-    private fun loadTodaysTasksAsFallback() {
-        // Bu fonksiyon, ViewModel'in init bloğunda todayTasks zaten yükleniyorsa
-        // veya _selectedDate'e bugünün tarihi atanarak tasksForSelectedDate tetikleniyorsa
-        // farklı bir şekilde ele alınabilir.
-        // Şimdilik, bugünün tarihini _selectedDate'e atayarak tasksForSelectedDate'i tetikleyelim.
-        val todayCalendar = Calendar.getInstance()
-        taskViewModel.loadTasksForDate(
-            todayCalendar.get(Calendar.YEAR),
-            todayCalendar.get(Calendar.MONTH),
-            todayCalendar.get(Calendar.DAY_OF_MONTH)
-        )
-    }
+    private fun setupDateChips() {
+        val chipGroup = binding.chipGroupDates
+        chipGroup.removeAllViews()
 
+        val calendar = Calendar.getInstance()
+        val numberOfDaysToShow = 7 // Gösterilecek gün sayısı
+        val sdfDayNumber = SimpleDateFormat("dd", Locale.getDefault())
+        val sdfDayName = SimpleDateFormat("EEE", Locale("tr")) // Gün adı için Türkçe
 
-    private fun observeViewModel() {
-        // Argüman yoksa veya bugün gösteriliyorsa todayTasks'ı dinle
-        taskViewModel.todayTasks.observe(viewLifecycleOwner, Observer { tasks ->
-            if (navArgs.selectedDateString == null) { // Sadece argüman yoksa bugünün görevlerini ve başlığını güncelle
-                updateToolbarTitle(Date(), tasks.size) // Bugünün tarihi ve görev sayısı
-                taskListAdapter.submitList(tasks.sortedBy { it.creationTimestamp })
-                updateEmptyView(tasks.isEmpty())
-            }
-        })
+        for (i in 0 until numberOfDaysToShow) {
+            // item_date_chip_layout.xml'i inflate et
+            val chip = layoutInflater.inflate(R.layout.item_date_chip_layout, chipGroup, false) as Chip
 
-        // Argüman varsa veya belirli bir tarih seçildiyse tasksForSelectedDate'i dinle
-        taskViewModel.tasksForSelectedDate.observe(viewLifecycleOwner, Observer { tasks ->
-            // tasksForSelectedDate her zaman bir değere sahip olmayabilir (başlangıçta null olabilir)
-            // Bu nedenle, sadece selectedDateString argümanı varsa bu bloğu çalıştırmak daha güvenli.
-            navArgs.selectedDateString?.let { dateStrArg ->
-                try {
-                    val sdfQuery = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val parsedDate = sdfQuery.parse(dateStrArg)
-                    if (parsedDate != null) {
-                        updateToolbarTitle(parsedDate, tasks.size) // Seçilen tarih ve görev sayısı
-                    } else {
-                        updateToolbarTitle(null, tasks.size) // Parse edilemezse genel başlık
+            val dayNumber = sdfDayNumber.format(calendar.time)
+            val dayName = sdfDayName.format(calendar.time)
+            chip.text = "$dayNumber\n$dayName"
+            chip.tag = calendar.clone() as Calendar // Tarih bilgisini sakla
+
+            chip.setOnCheckedChangeListener { currentChip, isChecked ->
+                if (isChecked) {
+                    // Diğer çiplerin seçimini kaldır (singleSelection true olsa da bazen manuel gerekebilir)
+                    for (j in 0 until chipGroup.childCount) {
+                        val otherChip = chipGroup.getChildAt(j) as Chip
+                        if (otherChip != currentChip) {
+                            otherChip.isChecked = false
+                        }
                     }
-                } catch (e: ParseException) {
-                    Log.e(TAG, "Toolbar başlığı için tarih parse hatası: $dateStrArg", e)
-                    updateToolbarTitle(null, tasks.size) // Hata durumunda genel başlık
+                    val selectedCal = currentChip.tag as Calendar
+                    Log.d(TAG, "Seçilen Tarih (Çip): ${selectedCal.time}")
+                    taskViewModel.loadTasksForDate(
+                        selectedCal.get(Calendar.YEAR),
+                        selectedCal.get(Calendar.MONTH),
+                        selectedCal.get(Calendar.DAY_OF_MONTH)
+                    )
+                    updateHeaderForSelectedDate(selectedCal)
                 }
-                taskListAdapter.submitList(tasks.sortedBy { it.creationTimestamp })
-                updateEmptyView(tasks.isEmpty())
             }
-        })
+            chipGroup.addView(chip)
+
+            if (i == 0) { // İlk çip (bugün) seçili başlasın
+                chip.isChecked = true
+                // updateHeaderForSelectedDate(calendar) // Bu, observeViewModel içinde de yapılabilir
+            }
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
     }
 
-    private fun updateToolbarTitle(date: Date?, taskCount: Int) {
-        val title: String = if (date != null) {
-            // Eğer tarih bugüne eşitse "Bugün" yaz, değilse formatla
-            val calendar = Calendar.getInstance()
-            val todayYear = calendar.get(Calendar.YEAR)
-            val todayMonth = calendar.get(Calendar.MONTH)
-            val todayDay = calendar.get(Calendar.DAY_OF_MONTH)
+    private fun updateHeaderForSelectedDate(selectedCalendar: Calendar) {
+        val sdfHeaderDate = SimpleDateFormat("dd MMM", Locale("tr"))
+        binding.textViewHeaderDateCentered.text = sdfHeaderDate.format(selectedCalendar.time)
 
-            calendar.time = date
-            val dateYear = calendar.get(Calendar.YEAR)
-            val dateMonth = calendar.get(Calendar.MONTH)
-            val dateDay = calendar.get(Calendar.DAY_OF_MONTH)
-
-            if (todayYear == dateYear && todayMonth == dateMonth && todayDay == dateDay) {
-                "Bugün"
-            } else {
-                SimpleDateFormat("dd MMMM yyyy", Locale("tr")).format(date)
-            }
-        } else if (navArgs.selectedDateString != null) {
-            // Argüman var ama parse edilemediyse veya null ise
-            "Seçili Gün"
+        val todayCal = Calendar.getInstance()
+        if (isSameDay(selectedCalendar, todayCal)) {
+            binding.textViewHeaderToday.text = "Today"
+        } else {
+            val sdfDayNameFull = SimpleDateFormat("EEEE", Locale("tr"))
+            binding.textViewHeaderToday.text = sdfDayNameFull.format(selectedCalendar.time)
         }
-        else {
-            "Bugün" // Varsayılan (argüman yoksa)
-        }
-        binding.toolbarTaskList.title = "$title ($taskCount)"
+        // Görev sayısı ViewModel'den gelen listeye göre güncellenecek
     }
 
+    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+    }
 
     private fun setupRecyclerView() {
         taskListAdapter = TaskListAdapter(
-            onTaskClicked = { task ->
-                showAddTaskOrEditDialog(task)
+            onStartPomodoroClicked = { task ->
+                Log.d(TAG, "Pomodoro başlatılıyor: ${task.title}, Süre: ${task.durationMinutes}dk")
+                // taskViewModel.startPomodoroForTask(task) // ViewModel'de bu fonksiyon olmalı
+                try {
+                    // findNavController().navigate(R.id.action_taskListFragment_to_pomodoroFragment) // NavGraph action ID'niz
+                    Log.d(TAG, "Pomodoro ekranına navigasyon (henüz eklenmedi).")
+                    Snackbar.make(binding.root, "${task.title} için Pomodoro başlatılacak.", Snackbar.LENGTH_SHORT).show()
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Navigasyon hatası - PomodoroFragment'a geçilemedi: ${e.message}", e)
+                    Snackbar.make(binding.root, "Pomodoro sayfasına şu an geçilemiyor.", Snackbar.LENGTH_LONG).show()
+                }
             },
-            onTaskCheckedChange = { task, _ ->
-                taskViewModel.toggleTaskCompleted(task)
+            onTaskCheckedChange = { task, isChecked ->
+                taskViewModel.toggleTaskCompleted(task.copy(isCompleted = isChecked))
             },
             onDeleteClicked = { task ->
+                // Bu lambda, eğer item_task.xml içinde bir silme butonu varsa ve
+                // TaskListAdapter içinde bu butona listener atanmışsa çağrılır.
+                // ItemTouchHelper ile swipe-to-delete zaten showDeleteConfirmationDialog'u çağırıyor.
+                // Eğer item içinde buton yoksa, bu lambda TaskListAdapter constructor'ından kaldırılabilir.
                 showDeleteConfirmationDialog(task)
+            },
+            onEditTaskClicked = { task ->
+                showAddTaskOrEditDialog(task)
             }
         )
         binding.recyclerViewTasks.apply {
@@ -256,8 +236,8 @@ class TaskListFragment : Fragment() {
         }
     }
 
-    private fun setupFab() {
-        binding.fabAddTask.setOnClickListener {
+    private fun setupAddNewTaskButtonHeader() {
+        binding.buttonAddNewTaskHeader.setOnClickListener {
             showAddTaskOrEditDialog(null)
         }
     }
@@ -266,7 +246,7 @@ class TaskListFragment : Fragment() {
         binding.buttonAskGemini.setOnClickListener {
             if (generativeModel == null) {
                 Log.e(TAG, "Gemini Modeli düzgün başlatılmadığı için istek gönderilemiyor.")
-                Snackbar.make(binding.root, "Gemini servisi şu anda kullanılamıyor. API anahtarınızı kontrol edin.", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "Gemini servisi şu anda kullanılamıyor. Lütfen API anahtarınızı kontrol edin.", Snackbar.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             val uncompletedTasks = taskListAdapter.currentList.filter { !it.isCompleted }
@@ -280,6 +260,7 @@ class TaskListFragment : Fragment() {
 
     private fun askGeminiForTimeManagementSuggestions(tasks: List<Task>) {
         val currentModel = generativeModel ?: return Unit.also {
+            Log.e(TAG, "askGeminiForTimeManagementSuggestions: Gemini Modeli null.")
             Snackbar.make(binding.root, "Gemini servisi başlatılamadı.", Snackbar.LENGTH_LONG).show()
         }
         showLoading(true)
@@ -315,6 +296,7 @@ class TaskListFragment : Fragment() {
 
     private fun handleGeminiError(e: Exception) {
         val errorMessage = when (e) {
+            //is InvalidApiKeyException -> "API anahtarı geçersiz. Lütfen 'HARDCODED_GEMINI_API_KEY' sabitini kendi geçerli API anahtarınızı girdiğinizden emin olun."
             is PromptBlockedException -> "İsteğiniz güvenlik politikaları nedeniyle engellendi."
             is UnsupportedUserLocationException -> "Bulunduğunuz bölge Gemini API tarafından desteklenmiyor."
             is ServerException -> "Gemini sunucularında bir sorun oluştu. Lütfen daha sonra tekrar deneyin."
@@ -324,7 +306,6 @@ class TaskListFragment : Fragment() {
         }
         Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
     }
-
 
     private fun showGeminiSuggestionsDialog(suggestions: String) {
         MaterialAlertDialogBuilder(requireContext())
@@ -339,14 +320,39 @@ class TaskListFragment : Fragment() {
     private fun showLoading(isLoading: Boolean) {
         binding.progressBarGemini.visibility = if (isLoading) View.VISIBLE else View.GONE
         binding.buttonAskGemini.isEnabled = !isLoading
-        binding.fabAddTask.isEnabled = !isLoading
-        // binding.recyclerViewTasks.isEnabled = !isLoading // Kullanıcı etkileşimini engellemek için
+        binding.buttonAddNewTaskHeader.isEnabled = !isLoading
+    }
+
+    private fun observeViewModel() {
+        // todayTasks gözlemcisi, başlangıçta bugünün görevlerini ve başlığını yükler.
+        // Çip seçimiyle tasksForSelectedDate tetiklenince bu gözlemciye gerek kalmayabilir
+        // veya sadece ilk yükleme için kullanılabilir.
+        taskViewModel.todayTasks.observe(viewLifecycleOwner, Observer { tasks ->
+            // Sadece ilk yüklemede ve henüz bir çip seçilmemişse (veya bugün seçiliyse) başlığı güncelle
+            val isTodaySelectedOrInitial = binding.chipGroupDates.checkedChipId == View.NO_ID ||
+                    isSameDay(binding.chipGroupDates.findViewById<Chip>(binding.chipGroupDates.checkedChipId)?.tag as? Calendar ?: Calendar.getInstance(), Calendar.getInstance())
+
+            if (isTodaySelectedOrInitial) {
+                updateHeaderForSelectedDate(Calendar.getInstance()) // Bugünün tarihiyle header'ı ayarla
+                binding.textViewHeaderTaskCount.text = "${tasks.size} Tasks"
+                taskListAdapter.submitList(tasks.sortedBy { it.creationTimestamp })
+                updateEmptyView(tasks.isEmpty())
+            }
+        })
+
+        taskViewModel.tasksForSelectedDate.observe(viewLifecycleOwner, Observer { tasks ->
+            // Bu gözlemci, loadTasksForDate çağrıldığında (çip seçimiyle) tetiklenir.
+            // Header'daki görev sayısı ve liste güncellenir.
+            // updateHeaderForSelectedDate zaten çip tıklandığında çağrılıyor.
+            binding.textViewHeaderTaskCount.text = "${tasks.size} Tasks"
+            taskListAdapter.submitList(tasks.sortedBy { it.creationTimestamp })
+            updateEmptyView(tasks.isEmpty())
+        })
     }
 
     private fun updateEmptyView(isEmpty: Boolean) {
         binding.recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
         binding.textViewEmptyListPlaceholder.visibility = if (isEmpty) View.VISIBLE else View.GONE
-        binding.buttonAskGemini.visibility = if (isEmpty) View.GONE else View.VISIBLE // Gemini butonu da boş duruma göre
     }
 
     private fun showAddTaskOrEditDialog(taskToEdit: Task?) {
@@ -362,7 +368,7 @@ class TaskListFragment : Fragment() {
             editTextDuration.setText(it.durationMinutes.toString())
             updateStartTimeButtonText(buttonSetStartTime, it.startTime)
         } ?: run {
-            editTextDuration.setText("25") // Varsayılan süre
+            editTextDuration.setText("25")
             updateStartTimeButtonText(buttonSetStartTime, null)
         }
 
@@ -407,12 +413,12 @@ class TaskListFragment : Fragment() {
                         )
                         taskViewModel.updateTask(updatedTask)
                     }
-                    selectedStartTimeMillis = null // İşlem sonrası sıfırla
+                    selectedStartTimeMillis = null
                 } else {
                     Snackbar.make(binding.root, "Görev başlığı boş olamaz!", Snackbar.LENGTH_SHORT).show()
                 }
             }
-            .setOnDismissListener { selectedStartTimeMillis = null } // Dialog kapanınca da sıfırla
+            .setOnDismissListener { selectedStartTimeMillis = null }
             .show()
     }
 
@@ -434,7 +440,7 @@ class TaskListFragment : Fragment() {
                 taskViewModel.deleteTask(task)
                 Snackbar.make(binding.root, "'${task.title}' silindi.", Snackbar.LENGTH_LONG)
                     .setAction("Geri Al") {
-                        taskViewModel.insertTask(task.copy(id = 0)) // id'yi sıfırlayarak yeniden ekle
+                        taskViewModel.insertTask(task.copy(id = 0))
                     }
                     .show()
             }
@@ -449,74 +455,15 @@ class TaskListFragment : Fragment() {
                 if (position != RecyclerView.NO_POSITION) {
                     val taskToDelete = taskListAdapter.currentList[position]
                     showDeleteConfirmationDialog(taskToDelete)
-                    // Silme işlemi dialog ile onaylandığı için adapter'ı hemen güncellemek yerine
-                    // LiveData'nın güncellemesini beklemek daha doğru olabilir.
-                    // Ancak, kullanıcıya anında geri bildirim için bu satır tutulabilir veya
-                    // silme işlemi sonrası LiveData güncellendiğinde liste otomatik yenilenecektir.
-                    taskListAdapter.notifyItemChanged(position) // Kaydırılan öğeyi eski haline getirir
+                    taskListAdapter.notifyItemChanged(position)
                 }
             }
         }
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewTasks)
     }
 
-    private fun showCalendarPicker() {
-        val datePicker = MaterialDatePicker.Builder.datePicker()
-            .setTitleText("Tarih Seçin")
-            .setSelection(MaterialDatePicker.todayInUtcMilliseconds()) // Varsayılan olarak bugünü seç
-            .build()
-
-        datePicker.addOnPositiveButtonClickListener { selection ->
-            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")) // UTC ile al
-            calendar.timeInMillis = selection
-            taskViewModel.loadTasksForDate(
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            )
-            // Takvimden tarih seçildiğinde, selectedDateString argümanı null olacağı için
-            // tasksForSelectedDate gözlemcisi bu yeni tarihi yükleyecektir.
-            // Argümanı manuel olarak null'a çekmeye gerek yok, navArgs.selectedDateString zaten
-            // bu fragment örneği için sabittir. Yeni bir fragment örneği oluşturulmadıkça değişmez.
-            // Ancak, takvimden seçim yapıldığında `navArgs.selectedDateString`'in etkisini
-            // kırmak için bir state yönetimi (örn: ViewModel'da ayrı bir LiveData) düşünülebilir
-            // ya da `tasksForSelectedDate` gözlemcisindeki koşul güncellenebilir.
-            // Şimdilik, `loadTasksForDate` çağrısı `tasksForSelectedDate` LiveData'sını tetikleyecektir.
-        }
-        datePicker.show(childFragmentManager, "MATERIAL_DATE_PICKER")
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_task_list, menu)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_delete_completed_tasks -> {
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Tamamlanan Görevleri Sil")
-                    .setMessage("Tamamlanmış tüm görevleri silmek istediğinizden emin misiniz?")
-                    .setNegativeButton("İptal", null)
-                    .setPositiveButton("Sil") { _, _ ->
-                        taskViewModel.deleteCompletedTasks()
-                        Snackbar.make(binding.root, "Tamamlanan görevler silindi.", Snackbar.LENGTH_SHORT).show()
-                    }
-                    .show()
-                true
-            }
-            R.id.action_show_calendar -> {
-                showCalendarPicker()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
     private fun logApiKeyStatus() {
         try {
-            // BuildConfig.APPLICATION_ID yerine direkt bir string loglayabiliriz.
-            // Log.d("BuildConfigCheck", "App ID: com.example.hackathon")
             val apiKeyStatus = if (HARDCODED_GEMINI_API_KEY.isBlank() ||
                 HARDCODED_GEMINI_API_KEY == PLACEHOLDER_API_KEY_FOR_CHECK ||
                 HARDCODED_GEMINI_API_KEY == EXAMPLE_API_KEY_TO_WARN_USER) {
@@ -532,7 +479,7 @@ class TaskListFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null // Bellek sızıntılarını önlemek için
+        _binding = null
         Log.d(TAG, "onDestroyView çağrıldı.")
     }
 }

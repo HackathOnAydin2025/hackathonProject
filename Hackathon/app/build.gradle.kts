@@ -114,7 +114,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Google Generative AI (Gemini) SDK
-    implementation("com.google.ai.client.generativeai:generativeai:0.5.0") // En son sürümü kontrol edin
+    implementation("com.google.ai.client.generativeai:generativeai:0.5.0")// En son sürümü kontrol edin
 
     // pie chart için
     implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")

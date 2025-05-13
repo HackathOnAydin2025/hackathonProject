@@ -3,7 +3,7 @@ package com.example.hackathon.tasks // Kendi paket adınızı kullanın
 import android.app.Application
 import androidx.lifecycle.*
 import com.example.hackathon.data.AppDatabase
-import com.example.hackathon.data.DailyTaskSummary
+import com.example.hackathon.data.DailyTaskSummary // Bu sınıfın tanımını kontrol edin
 import com.example.hackathon.data.Task
 import com.example.hackathon.data.TaskDao
 import kotlinx.coroutines.Dispatchers
@@ -28,11 +28,27 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val activeWeeklySummarySources = mutableListOf<LiveData<List<Task>>>()
 
+    // Pomodoro için seçilen görevi tutacak LiveData
+    private val _selectedTaskForPomodoro = MutableLiveData<Task?>()
+    val selectedTaskForPomodoro: LiveData<Task?> = _selectedTaskForPomodoro
+
     init {
         val database = AppDatabase.getDatabase(application)
         taskDao = database.taskDao()
         todayTasks = taskDao.getTodayTasks()
     }
+
+    // Pomodoro için görevi ayarlayan fonksiyon
+    fun startPomodoroForTask(task: Task) {
+        _selectedTaskForPomodoro.value = task
+    }
+
+    // Pomodoro bittiğinde veya iptal edildiğinde seçili görevi temizle
+    // !!! KULLANILACAK DOĞRU FONKSİYON ADI BUDUR: clearSelectedTaskForPomodoro !!!
+    fun clearSelectedTaskForPomodoro() {
+        _selectedTaskForPomodoro.value = null
+    }
+
 
     fun insertTask(task: Task) = viewModelScope.launch(Dispatchers.IO) {
         taskDao.insertTask(task)
@@ -56,9 +72,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         insertTask(newTask)
     }
 
-    fun toggleTaskCompleted(task: Task) {
-        val updatedTask = task.copy(isCompleted = !task.isCompleted)
-        updateTask(updatedTask)
+    // TaskListFragment'tan gelen çağrıya göre güncellendi:
+    // TaskListAdapter'dan gelen task zaten güncel isCompleted durumunu içeriyor.
+    fun toggleTaskCompleted(updatedTaskWithCheckedState: Task) {
+        updateTask(updatedTaskWithCheckedState)
     }
 
     fun deleteCompletedTasks() = viewModelScope.launch(Dispatchers.IO) {
@@ -97,21 +114,25 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val dailyResults = mutableMapOf<String, Int>()
+        val dailyCompletedResults = mutableMapOf<String, Int>()
         val expectedResults = datesInWeek.size
 
         datesInWeek.forEach { dayDate ->
             val dateStrQuery = dateFormatForQuery.format(dayDate)
-            val dayTasksLiveData = taskDao.getTasksForDate(dateStrQuery) // DAO'dan LiveData alınıyor
+            val dayTasksLiveData = taskDao.getTasksForDate(dateStrQuery)
             activeWeeklySummarySources.add(dayTasksLiveData)
 
             _weeklyTaskSummary.addSource(dayTasksLiveData) { tasks ->
                 dailyResults[dateStrQuery] = tasks?.size ?: 0
-                if (dailyResults.size == expectedResults) {
+                dailyCompletedResults[dateStrQuery] = tasks?.count { it.isCompleted } ?: 0
+
+                if (dailyResults.size == expectedResults && dailyCompletedResults.size == expectedResults) {
                     val summaryList = datesInWeek.map { d ->
                         val queryStr = dateFormatForQuery.format(d)
                         DailyTaskSummary(
                             date = d,
                             taskCount = dailyResults[queryStr] ?: 0,
+                            completedTaskCount = dailyCompletedResults[queryStr] ?: 0,
                             label = dateFormatForLabel.format(d)
                         )
                     }
@@ -120,16 +141,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-
-    // === DÜZELTME İÇİN EKLENEN YENİ FONKSİYON ===
-    /**
-     * Belirli bir tarih string'i için görevleri içeren bir LiveData döndürür.
-     * Bu, genellikle tek seferlik gözlemler için (örn: dialog içinde göstermek) kullanılır.
-     */
-    fun getTasksLiveDataForSpecificDate(dateString: String): LiveData<List<Task>> {
-        return taskDao.getTasksForDate(dateString)
-    }
-    // === DÜZELTME SONU ===
 
     override fun onCleared() {
         super.onCleared()

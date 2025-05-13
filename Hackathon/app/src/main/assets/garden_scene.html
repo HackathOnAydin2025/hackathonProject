@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Tatlı Bahçe</title>
+    <style>
+        body { margin: 0; overflow: hidden; /* Arka plan rengi Three.js tarafından ayarlanacak */ }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #333; /* Koyu tema için beyaz olabilir */
+            font-family: sans-serif;
+            font-size: 12px;
+            display: none;
+        }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        .controls button {
+            padding: 10px 15px;
+            background-color: #A4B465; /* user_light_green */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .controls button:hover {
+            background-color: #626F47; /* user_dark_green */
+        }
+    </style>
+</head>
+<body>
+<div id="info">Su Damlası: <span id="waterCount">0</span> | Ağaç Sayısı: <span id="treeCount">0</span></div>
+<div class="controls">
+    <button id="addPlantButton">Fidan Dik</button>
+    <button id="waterPlantButton">Bitkiyi Sula</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    let scene, camera, renderer, controls;
+    let ground, sunLight;
+    const plants = [];
+    let nextPlantPosition = { x: -2, z: -2 };
+    const gridSize = 2;
+
+    // Renk Paletiniz (JavaScript içinde kullanmak için)
+    const userColors = {
+        dark_green: 0x626F47,
+        light_green: 0xA4B465,
+        beige: 0xF5ECD5,
+        orange: 0xF0BB78,
+        sky_blue: 0x87CEEB, // Gökyüzü mavisi
+        soft_white: 0xFFF8E1 // Yumuşak beyaz ışık için
+    };
+
+    function init() {
+        // 1. Sahne
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(userColors.sky_blue); // Gökyüzü rengi
+        scene.fog = new THREE.Fog(userColors.sky_blue, 15, 40); // Sis rengi gökyüzüyle uyumlu
+
+        // 2. Kamera
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 6, 10); // Biraz daha yukarıdan ve uzaktan bakış
+        camera.lookAt(0, 0, 0);
+
+        // 3. Render Edici
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // 4. Kontroller
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 4;
+        controls.maxDistance = 25;
+        controls.maxPolarAngle = Math.PI / 2.05; // Kameranın çok aşağıya gitmesini engelle
+
+        // 5. Işıklar
+        const ambientLight = new THREE.AmbientLight(userColors.soft_white, 0.7); // Daha yumuşak ortam ışığı
+        scene.add(ambientLight);
+
+        sunLight = new THREE.DirectionalLight(userColors.soft_white, 0.9); // Daha yumuşak güneş ışığı
+        sunLight.position.set(8, 15, 10);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 1024;
+        sunLight.shadow.mapSize.height = 1024;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 50;
+        sunLight.shadow.camera.left = -15;
+        sunLight.shadow.camera.right = 15;
+        sunLight.shadow.camera.top = 15;
+        sunLight.shadow.camera.bottom = -15;
+        scene.add(sunLight);
+        // scene.add(new THREE.CameraHelper(sunLight.shadow.camera));
+
+
+        // 6. Zemin (Çimen)
+        const groundGeometry = new THREE.PlaneGeometry(30, 30); // Biraz daha geniş zemin
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: userColors.light_green, // Sizin açık yeşil renginiz
+            roughness: 0.95, // Daha pürüzlü, daha az parlak (çimen gibi)
+            metalness: 0.1 // Çok az metaliklik
+        });
+        ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+
+        window.addEventListener('resize', onWindowResize, false);
+        document.getElementById('addPlantButton').addEventListener('click', () => {
+            if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.canPlantNewSapling === "function") {
+                if (window.AndroidBridge.canPlantNewSapling()) {
+                     const newPlant = plantNewSapling();
+                     if (newPlant && typeof window.AndroidBridge.onSaplingPlanted === "function") {
+                        window.AndroidBridge.onSaplingPlanted(newPlant.uuid, newPlant.position.x, newPlant.position.z);
+                     }
+                } else {
+                    alert("Yeni fidan dikmek için yeterli suyun yok!");
+                }
+            } else {
+                plantNewSapling();
+            }
+        });
+        document.getElementById('waterPlantButton').addEventListener('click', () => {
+            if (plants.length > 0) {
+                // Rastgele bir bitkiyi sula veya seçili bitki mantığı eklenebilir
+                const randomPlantIndex = Math.floor(Math.random() * plants.length);
+                growPlant(plants[randomPlantIndex]);
+                 if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onPlantWatered === "function") {
+                    window.AndroidBridge.onPlantWatered(plants[randomPlantIndex].uuid);
+                 }
+            } else {
+                alert("Sulayacak bitki yok!");
+            }
+        });
+
+        animate();
+    }
+
+    function plantNewSapling() {
+        // Daha "tatlı" fidanlar için farklı renkler ve şekiller deneyebiliriz.
+        // Şimdilik basit bir silindir kullanalım (gövde) ve bir küre (yapraklar)
+        const plantGroup = new THREE.Group();
+
+        // Gövde
+        const trunkHeight = 0.4 + Math.random() * 0.2; // Rastgele yükseklik
+        const trunkRadius = 0.05 + Math.random() * 0.03;
+        const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius * 0.8, trunkHeight, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 }); // SaddleBrown - Kahverengi
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = trunkHeight / 2;
+        trunk.castShadow = true;
+        plantGroup.add(trunk);
+
+        // Yapraklar (Basit bir küre)
+        const leavesRadius = 0.2 + Math.random() * 0.1;
+        const leavesGeometry = new THREE.SphereGeometry(leavesRadius, 8, 6);
+        const leavesMaterial = new THREE.MeshStandardMaterial({ color: userColors.dark_green, roughness: 0.8 }); // Sizin koyu yeşiliniz
+        const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+        leaves.position.y = trunkHeight; // Gövdenin üstüne
+        leaves.castShadow = true;
+        plantGroup.add(leaves);
+
+        plantGroup.position.set(nextPlantPosition.x, 0, nextPlantPosition.z); // Pozisyonu zemine göre ayarla (y=0)
+
+        scene.add(plantGroup);
+        plants.push(plantGroup); // Grubu bitkiler dizisine ekle
+
+        // userData'yı gruba ekleyelim
+        plantGroup.userData = {
+            growthStage: 0,
+            waterLevel: 0,
+            baseTrunkHeight: trunkHeight,
+            baseLeavesRadius: leavesRadius
+        };
+
+
+        nextPlantPosition.x += gridSize + Math.random() * 0.5 - 0.25; // Biraz rastgelelik
+        if (nextPlantPosition.x > 6) { // Sınırı genişlettim
+            nextPlantPosition.x = -6 + Math.random() * 0.5;
+            nextPlantPosition.z += gridSize + Math.random() * 0.5 - 0.25;
+            if (nextPlantPosition.z > 6) {
+                LogToAndroid("Bahçe alanı doldu!");
+                // document.getElementById('addPlantButton').disabled = true; // Butonu devre dışı bırak
+                // return null;
+            }
+        }
+        LogToAndroid(`Yeni fidan dikildi: ${plantGroup.uuid} pozisyon: (${plantGroup.position.x.toFixed(1)}, ${plantGroup.position.z.toFixed(1)})`);
+        return plantGroup;
+    }
+
+    // createPlantMesh fonksiyonu yerine plantNewSapling direkt grup oluşturuyor.
+    // İsterseniz createPlantMesh'i de benzer şekilde güncelleyebilirsiniz.
+
+    function growPlant(plantGroup) {
+        if (!plantGroup || !plantGroup.userData) return;
+
+        plantGroup.userData.waterLevel = (plantGroup.userData.waterLevel || 0) + 1;
+        LogToAndroid(`Bitki sulandı: ${plantGroup.uuid}, su seviyesi: ${plantGroup.userData.waterLevel}`);
+
+        const growthFactor = 1.05; // Daha yavaş, tatlı bir büyüme
+        const maxScale = 2.5; // Maksimum ölçek faktörü
+
+        const trunk = plantGroup.children[0]; // Gövde
+        const leaves = plantGroup.children[1]; // Yapraklar
+
+        if (trunk.scale.y < maxScale) {
+            trunk.scale.y *= growthFactor;
+            // Gövde kalınlaşabilir
+            trunk.scale.x *= growthFactor * 0.95; // Yüksekliğe göre biraz daha az kalınlaşsın
+            trunk.scale.z *= growthFactor * 0.95;
+
+            leaves.scale.multiplyScalar(growthFactor);
+
+            // Pozisyonları güncelle (gövde zeminde kalsın, yapraklar gövdenin üstünde)
+            trunk.position.y = (plantGroup.userData.baseTrunkHeight * trunk.scale.y) / 2;
+            leaves.position.y = plantGroup.userData.baseTrunkHeight * trunk.scale.y; // Gövdenin yeni yüksekliğinin tepesi
+
+            LogToAndroid(`Bitki büyüdü: ${plantGroup.uuid}, gövde yükseklik ölçeği: ${trunk.scale.y.toFixed(2)}`);
+
+            // Renk ve aşama değişimi
+            if (trunk.scale.y > 1.5 && plantGroup.userData.growthStage < 1) {
+                leaves.material.color.setHex(userColors.light_green); // Daha açık yeşil yapraklar
+                plantGroup.userData.growthStage = 1;
+            } else if (trunk.scale.y > 2.0 && plantGroup.userData.growthStage < 2) {
+                leaves.material.color.setHex(userColors.orange); // Belki çiçek açar gibi turuncu?
+                plantGroup.userData.growthStage = 2;
+            }
+        } else {
+            LogToAndroid(`Bitki maksimum boyuta ulaştı: ${plantGroup.uuid}`);
+        }
+    }
+
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    function LogToAndroid(message) {
+        if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.log === "function") {
+            window.AndroidBridge.log(message);
+        } else {
+            console.log(message);
+        }
+    }
+
+    window.setWaterCount = function(count) {
+        document.getElementById('waterCount').textContent = count;
+    }
+    window.setTreeCount = function(count) {
+        document.getElementById('treeCount').textContent = plants.length;
+    }
+    window.loadGardenState = function(gardenDataJson) {
+        try {
+            const gardenData = JSON.parse(gardenDataJson);
+            LogToAndroid("Bahçe durumu yükleniyor: " + gardenDataJson);
+            plants.forEach(plant => scene.remove(plant));
+            plants.length = 0;
+            nextPlantPosition = { x: -2, z: -2 };
+
+            if (gardenData && gardenData.plants) {
+                gardenData.plants.forEach(pData => {
+                    // plantNewSapling benzeri bir mantıkla bitkileri yeniden oluştur
+                    // Bu kısım daha detaylı bir state yönetimi gerektirir (gövde/yaprak boyutları vb.)
+                    // Şimdilik basitçe pozisyon ve userData'yı alalım
+                    const plantGroup = new THREE.Group();
+                    const trunkHeight = pData.baseTrunkHeight || 0.4;
+                    const trunkRadius = 0.05; // Sabit veya pData'dan alınabilir
+                    const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius * 0.8, trunkHeight, 8);
+                    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                    plantGroup.add(trunk);
+
+                    const leavesRadius = pData.baseLeavesRadius || 0.2;
+                    const leavesGeometry = new THREE.SphereGeometry(leavesRadius, 8, 6);
+                    let leavesColor = userColors.dark_green;
+                    if(pData.growthStage === 1) leavesColor = userColors.light_green;
+                    if(pData.growthStage === 2) leavesColor = userColors.orange;
+                    const leavesMaterial = new THREE.MeshStandardMaterial({ color: leavesColor, roughness: 0.8 });
+                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                    plantGroup.add(leaves);
+
+                    plantGroup.position.set(pData.x, 0, pData.z);
+                    trunk.scale.y = pData.trunkScaleY || 1; // Kaydedilmiş ölçek
+                    trunk.scale.x = pData.trunkScaleX || 1;
+                    trunk.scale.z = pData.trunkScaleZ || 1;
+                    leaves.scale.setScalar(pData.leavesScale || 1);
+
+                    trunk.position.y = (trunkHeight * trunk.scale.y) / 2;
+                    leaves.position.y = trunkHeight * trunk.scale.y;
+
+                    plantGroup.uuid = pData.uuid || plantGroup.uuid;
+                    plantGroup.userData = {
+                        growthStage: pData.growthStage || 0,
+                        waterLevel: pData.waterLevel || 0,
+                        baseTrunkHeight: trunkHeight,
+                        baseLeavesRadius: leavesRadius
+                    };
+
+                    scene.add(plantGroup);
+                    plants.push(plantGroup);
+                });
+                if (plants.length > 0) {
+                    const lastPlant = plants[plants.length -1];
+                    nextPlantPosition.x = lastPlant.position.x + gridSize;
+                    nextPlantPosition.z = lastPlant.position.z;
+                     if (nextPlantPosition.x > 6) {
+                        nextPlantPosition.x = -6;
+                        nextPlantPosition.z += gridSize;
+                    }
+                }
+            }
+            window.setTreeCount(plants.length);
+        } catch (e) {
+            LogToAndroid("Bahçe durumu yüklenirken hata: " + e.message);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

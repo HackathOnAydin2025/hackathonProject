@@ -1,0 +1,12 @@
+<resources>
+    <style name="Widget.App.GardenPlot" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_rowWeight">1</item>
+        <item name="android:layout_gravity">fill</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:adjustViewBounds">true</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:background">@drawable/bg_garden_plot_selector</item> <item name="android:minHeight">100dp</item> </style>
+</resources>
