@@ -3,11 +3,13 @@ package com.example.hackathon.tasks // Kendi paket adınızı kullanın
 import android.app.Application
 import androidx.lifecycle.*
 import com.example.hackathon.data.AppDatabase
+import com.example.hackathon.data.DailyTaskSummary
 import com.example.hackathon.data.Task
 import com.example.hackathon.data.TaskDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -16,18 +18,20 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private lateinit var taskDao: TaskDao
     val todayTasks: LiveData<List<Task>>
 
-    // Takvim için seçilen tarihi ve o tarihe ait görevleri tutar
     private val _selectedDate = MutableLiveData<String>()
     val tasksForSelectedDate: LiveData<List<Task>> = _selectedDate.switchMap { dateStr ->
         taskDao.getTasksForDate(dateStr)
     }
 
+    private val _weeklyTaskSummary = MediatorLiveData<List<DailyTaskSummary>>()
+    val weeklyTaskSummary: LiveData<List<DailyTaskSummary>> = _weeklyTaskSummary
+
+    private val activeWeeklySummarySources = mutableListOf<LiveData<List<Task>>>()
+
     init {
         val database = AppDatabase.getDatabase(application)
         taskDao = database.taskDao()
-        todayTasks = taskDao.getTodayTasks() // Başlangıçta bugünün görevlerini yükle
-        // Başlangıçta bugünün tarihini selectedDate'e ata (opsiyonel, eğer direkt belirli bir tarih göstermek istenirse)
-        // _selectedDate.value = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        todayTasks = taskDao.getTodayTasks()
     }
 
     fun insertTask(task: Task) = viewModelScope.launch(Dispatchers.IO) {
@@ -43,7 +47,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addNewTask(title: String, durationMinutes: Int = 25, startTime: Long? = null) {
-        if (title.isBlank()) return // Boş başlık eklemeyi engelle
+        if (title.isBlank()) return
         val newTask = Task(
             title = title,
             durationMinutes = durationMinutes,
@@ -62,17 +66,76 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadTasksForDate(year: Int, month: Int, dayOfMonth: Int) {
-        // Ay 0'dan başladığı için month + 1
         _selectedDate.value = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth)
     }
 
-    // Gemini'den gelen görev önerilerini eklemek için bir fonksiyon
-    fun addTasksFromSuggestions(suggestions: List<Pair<String, Int>>) { // (Başlık, Süre)
+    fun addTasksFromSuggestions(suggestions: List<Pair<String, Int>>) {
         viewModelScope.launch(Dispatchers.IO) {
             suggestions.forEach { (title, duration) ->
                 val newTask = Task(title = title, durationMinutes = duration)
                 taskDao.insertTask(newTask)
             }
         }
+    }
+
+    fun loadWeeklyTaskSummary(startDateOfWeek: Date) {
+        activeWeeklySummarySources.forEach { source ->
+            _weeklyTaskSummary.removeSource(source)
+        }
+        activeWeeklySummarySources.clear()
+
+        val calendar = Calendar.getInstance()
+        calendar.time = startDateOfWeek
+
+        val dateFormatForQuery = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dateFormatForLabel = SimpleDateFormat("dd MMM (E)", Locale("tr"))
+
+        val datesInWeek = (0..6).map {
+            val date = calendar.time.clone() as Date
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+            date
+        }
+
+        val dailyResults = mutableMapOf<String, Int>()
+        val expectedResults = datesInWeek.size
+
+        datesInWeek.forEach { dayDate ->
+            val dateStrQuery = dateFormatForQuery.format(dayDate)
+            val dayTasksLiveData = taskDao.getTasksForDate(dateStrQuery) // DAO'dan LiveData alınıyor
+            activeWeeklySummarySources.add(dayTasksLiveData)
+
+            _weeklyTaskSummary.addSource(dayTasksLiveData) { tasks ->
+                dailyResults[dateStrQuery] = tasks?.size ?: 0
+                if (dailyResults.size == expectedResults) {
+                    val summaryList = datesInWeek.map { d ->
+                        val queryStr = dateFormatForQuery.format(d)
+                        DailyTaskSummary(
+                            date = d,
+                            taskCount = dailyResults[queryStr] ?: 0,
+                            label = dateFormatForLabel.format(d)
+                        )
+                    }
+                    _weeklyTaskSummary.value = summaryList
+                }
+            }
+        }
+    }
+
+    // === DÜZELTME İÇİN EKLENEN YENİ FONKSİYON ===
+    /**
+     * Belirli bir tarih string'i için görevleri içeren bir LiveData döndürür.
+     * Bu, genellikle tek seferlik gözlemler için (örn: dialog içinde göstermek) kullanılır.
+     */
+    fun getTasksLiveDataForSpecificDate(dateString: String): LiveData<List<Task>> {
+        return taskDao.getTasksForDate(dateString)
+    }
+    // === DÜZELTME SONU ===
+
+    override fun onCleared() {
+        super.onCleared()
+        activeWeeklySummarySources.forEach { source ->
+            _weeklyTaskSummary.removeSource(source)
+        }
+        activeWeeklySummarySources.clear()
     }
 }

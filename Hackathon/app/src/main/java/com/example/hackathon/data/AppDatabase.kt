@@ -4,11 +4,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.hackathon.progress.dao.DropDao
+import com.example.hackathon.progress.dao.TreeDao
+import com.example.hackathon.progress.entity.Drop
+import com.example.hackathon.progress.entity.Tree
 
-@Database(entities = [Task::class], version = 1, exportSchema = false)
+@Database(entities = [Task::class, Tree::class, Drop::class], version = 2, exportSchema = false) // Versiyon 2 doğru.
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun taskDao(): TaskDao
+    abstract fun treeDao(): TreeDao
+    abstract fun dropDao(): DropDao
 
     companion object {
         @Volatile
@@ -21,7 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "zaman_bahcesi_database" // Veritabanı dosya adı
                 )
-                    // .fallbackToDestructiveMigration() // Geliştirme aşamasında şema değişikliğinde veriyi siler
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
