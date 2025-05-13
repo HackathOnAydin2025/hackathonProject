@@ -89,8 +89,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2") // ViewModelScope için
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2") // lifecycleScope için
 
-    // Azure TTS için
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    // pie chart için
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
 }
