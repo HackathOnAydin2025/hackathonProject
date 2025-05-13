@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    app:cardElevation="3dp"
+    app:cardCornerRadius="12dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <CheckBox
+            android:id="@+id/checkbox_task_completed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:buttonTint="?attr/colorPrimary" /> <TextView
+        android:id="@+id/textView_task_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textSize="18sp"
+        android:textColor="?android:attr/textColorPrimary"
+        tools:text="Uzun bir görev başlığı burada yer alacak ve belki de iki satıra yayılacak"
+        app:layout_constraintStart_toEndOf="@id/checkbox_task_completed"
+        app:layout_constraintTop_toTopOf="@id/checkbox_task_completed"
+        app:layout_constraintEnd_toStartOf="@id/button_delete_task"
+        app:layout_constraintBottom_toTopOf="@+id/textView_task_details"
+        app:layout_goneMarginBottom="0dp"/>
+
+        <TextView
+            android:id="@+id/textView_task_details"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            tools:text="Süre: 45 dk | Başlangıç: 14:30"
+            app:layout_constraintStart_toStartOf="@id/textView_task_title"
+            app:layout_constraintTop_toBottomOf="@id/textView_task_title"
+            app:layout_constraintEnd_toEndOf="@id/textView_task_title"
+            app:layout_constraintBottom_toBottomOf="@id/checkbox_task_completed"
+            android:visibility="visible"/>
+
+        <ImageButton
+            android:id="@+id/button_delete_task"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Görevi Sil"
+            android:src="@drawable/ic_delete_outline"  app:tint="?android:attr/textColorSecondary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

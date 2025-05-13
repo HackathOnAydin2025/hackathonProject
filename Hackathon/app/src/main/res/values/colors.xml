@@ -6,4 +6,14 @@
     <color name="light_green">#A4B465</color>
     <color name="beige">#F5ECD5</color>
     <color name="orange">#F0BB78</color>
+
+
+    <color name="green_seedling">#A8E6A4</color>
+    <color name="green_sapling">#77DD77</color>
+    <color name="green_tree">#3EBD3E</color>
+    <color name="blue_drop">#A0D2DB</color>
+    <color name="grey_500">#9E9E9E</color>
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
 </resources>
