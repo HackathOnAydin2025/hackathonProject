@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bookgenie"
+    namespace = "com.example.hackathon"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.bookgenie"
+        applicationId = "com.example.hackathon"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
