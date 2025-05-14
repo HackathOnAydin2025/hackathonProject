@@ -1,37 +1,48 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main_coordinator_layout" android:layout_width="match_parent"
+    android:id="@+id/main_coordinator_layout"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/nav_host_fragment" android:name="androidx.navigation.fragment.NavHostFragment"
+        android:id="@+id/nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:defaultNavHost="true"
-        app:navGraph="@navigation/main_nav" android:layout_marginBottom="@dimen/bottom_nav_height_with_fab_margin" /> <com.google.android.material.bottomappbar.BottomAppBar
+        app:navGraph="@navigation/main_nav"
+        android:layout_marginBottom="@dimen/bottom_nav_height_for_content" /> <com.google.android.material.bottomappbar.BottomAppBar
     android:id="@+id/bottomAppBar"
-    style="@style/Widget.MaterialComponents.BottomAppBar.PrimarySurface" android:layout_width="match_parent"
+    style="@style/Widget.MaterialComponents.BottomAppBar.PrimarySurface"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
     app:fabAlignmentMode="center"
     app:fabCradleMargin="8dp"
     app:fabCradleRoundedCornerRadius="16dp"
-    app:hideOnScroll="true"> <com.google.android.material.bottomnavigation.BottomNavigationView
-    android:id="@+id/bottomNavigationView"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@android:color/transparent" app:menu="@menu/menu_design" app:itemIconTint="@color/bottom_nav_item_color_selector" app:itemTextColor="@color/bottom_nav_item_color_selector" app:labelVisibilityMode="labeled"/>
+    app:hideOnScroll="true">
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:itemIconTint="@color/bottom_nav_item_color_selector"
+        app:itemTextColor="@color/bottom_nav_item_color_selector"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/menu_design"/>
 </com.google.android.material.bottomappbar.BottomAppBar>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/garden" app:tint="@null" app:maxImageSize="40dp"
-        app:backgroundTint="?attr/colorPrimary" app:layout_anchor="@id/bottomAppBar" />
+        android:src="@drawable/daisy"
+        app:tint="@null"
+        app:maxImageSize="70dp"
+        app:layout_anchor="@id/bottomAppBar" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

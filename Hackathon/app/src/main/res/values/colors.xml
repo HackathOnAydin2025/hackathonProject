@@ -60,4 +60,8 @@
     <color name="md_theme_outline">#7A757F</color>
 
     <color name="app_primary_light_transparent">#33CFD8B9</color>
+
+    <color name="ekle_kaydet_buton_yazi_rengi">#006400</color> <color name="iptal_buton_yazi_rengi">#808080</color>
+
+
 </resources>

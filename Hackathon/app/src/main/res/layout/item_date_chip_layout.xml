@@ -13,4 +13,5 @@
     android:layout_marginEnd="4dp"
     app:chipMinTouchTargetSize="0dp"
     app:ensureMinTouchTargetSize="false"
+    android:textColor="@color/user_beige"
     android:minWidth="60dp"/>
