@@ -1,4 +1,4 @@
-package com.example.hackathon.tasks // Kendi paket adınızı kullanın
+package com.example.hackathon.tasks // Kendi paket adınız
 
 import android.graphics.Paint
 import android.util.Log
@@ -7,25 +7,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import androidx.navigation.findNavController // Navigasyon için
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.hackathon.R
-import com.example.hackathon.data.Task
-import com.example.hackathon.databinding.ItemTaskBinding
-import com.example.hackathon.TaskListFragmentDirections // Oluşturulan Directions sınıfı
+import com.example.hackathon.data.Task // Task veri sınıfınızın importu
+import com.example.hackathon.databinding.ItemTaskBinding // ViewBinding sınıfınız
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TaskListAdapter(
-    // onStartPomodoroClicked artık doğrudan navigasyon yapacak, TaskViewModel'i Fragment'tan alacak.
-    // Bu yüzden lambda imzası sadece Task alabilir veya Fragment'ın kendisini alabilir.
-    // Şimdilik, tıklanan görevi döndüren bir lambda bırakıyoruz, navigasyonu Fragment halledecek.
     private val onTaskItemClicked: (Task) -> Unit,
-    private val onTaskCheckedChange: (Task, Boolean) -> Unit,
+    // Bu callback, Fragment tarafından görev durumu değişikliğini ve damla yönetimini ele almak için kullanılır
+    private val onTaskCheckedChange: (task: Task, isChecked: Boolean) -> Unit,
     private val onDeleteClicked: (Task) -> Unit,
-    private val onEditTaskClicked: ((Task) -> Unit)?
+    private val onEditTaskClicked: ((Task) -> Unit)? = null // Opsiyonel düzenleme butonu için
 ) : ListAdapter<Task, TaskListAdapter.TaskViewHolder>(TaskDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -43,44 +39,52 @@ class TaskListAdapter(
 
         init {
             binding.root.setOnClickListener {
-                val position = adapterPosition
+                val position = bindingAdapterPosition // Daha güvenli
                 if (position != RecyclerView.NO_POSITION) {
-                    onTaskItemClicked(getItem(position)) // Fragment bu tıklamayı alıp ViewModel'i güncelleyecek ve navigasyon yapacak
+                    onTaskItemClicked(getItem(position))
                 }
             }
 
             binding.checkboxTaskCompleted.setOnCheckedChangeListener { _, isChecked ->
-                val position = adapterPosition
+                val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    // CheckBox durumu değiştiğinde, görevin isCompleted durumunu güncelleyip callback'i çağır.
-                    // ViewModel'i doğrudan burada güncellemek yerine, değişikliği Fragment'a bildiriyoruz.
                     val task = getItem(position)
-                    // task.isCompleted = isChecked // Bu satır burada olmamalı, state yönetimi ViewModel'de
+                    // Gerçek state yönetimi ve damla ödüllendirme Fragment'ta bu callback ile yapılır.
+                    // Adapter, görevin 'isCompleted' durumunu doğrudan değiştirmemelidir.
+                    // Bu değişiklik ViewModel üzerinden yapılmalı ve LiveData ile UI güncellenmelidir.
                     onTaskCheckedChange(task, isChecked)
                 }
             }
 
             binding.buttonDeleteTask.setOnClickListener {
-                val position = adapterPosition
+                val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onDeleteClicked(getItem(position))
                 }
             }
 
-            // Edit butonu için (eğer varsa)
-            // binding.buttonEditTask.setOnClickListener { ... }
+            // Opsiyonel düzenleme butonu için (XML'de ID'si buttonEditTask ise)
+            /*binding.buttonEditTask?.setOnClickListener { // buttonEditTask null-safe erişim
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onEditTaskClicked?.invoke(getItem(position))
+                }
+            }*/
         }
 
         fun bind(task: Task) {
             binding.textViewTaskTitle.text = task.title
-            binding.checkboxTaskCompleted.isChecked = task.isCompleted // CheckBox'ı görevin durumuna göre ayarla
+            // CheckBox'ın durumu, ViewHolder yeniden kullanıldığında onCheckedChangeListener'ı tetiklememesi için
+            // listener null iken ayarlanabilir veya listener içinde eski ve yeni durum karşılaştırılabilir.
+            // Şimdilik basit tutuyoruz:
+            binding.checkboxTaskCompleted.isChecked = task.isCompleted
             updateTaskTitleAppearance(binding.textViewTaskTitle, task.isCompleted)
 
             if (task.startTime != null) {
                 val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
                 val startTimeFormatted = sdfTime.format(Date(task.startTime))
                 val endTimeCalendar = Calendar.getInstance().apply {
-                    timeInMillis = task.startTime
+                    timeInMillis = task.startTime!! // Null olamayacağı varsayımı
                     add(Calendar.MINUTE, task.durationMinutes)
                 }
                 val endTimeFormatted = sdfTime.format(endTimeCalendar.time)
@@ -88,29 +92,24 @@ class TaskListAdapter(
                 binding.textViewTaskTimeRange.visibility = View.VISIBLE
             } else {
                 binding.textViewTaskTimeRange.text = "${task.durationMinutes} dk"
-                // binding.textViewTaskTimeRange.visibility = View.GONE // Veya süreyi göster
+                binding.textViewTaskTimeRange.visibility = View.VISIBLE // Süreyi her zaman göster
             }
-            // Kalan süreyi göstermek için (opsiyonel)
+
             val remainingMinutes = task.durationMinutes - task.actualFocusedMinutes
             val focusedInfo = if (task.actualFocusedMinutes > 0) " (${task.actualFocusedMinutes} dk odaklanıldı)" else ""
             binding.textViewTaskDescription.text = "Kalan süre: $remainingMinutes dk / Toplam: ${task.durationMinutes} dk$focusedInfo"
 
-            // Eğer düzenleme butonu varsa
-            /*binding.buttonEditTask?.setOnClickListener { // XML'de buttonEditTask ID'li bir view olmalı
-                val position = adapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    onEditTaskClicked?.invoke(getItem(position))
-                }
-            }*/
+            // Düzenleme butonunun görünürlüğü (eğer XML'de buttonEditTask varsa)
+            //binding.buttonEditTask?.visibility = if (onEditTaskClicked != null) View.VISIBLE else View.GONE
         }
 
         private fun updateTaskTitleAppearance(textView: TextView, isCompleted: Boolean) {
             if (isCompleted) {
                 textView.paintFlags = textView.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_secondary))
+                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_secondary)) // Renkleri R.color dosyanızdan alın
             } else {
                 textView.paintFlags = textView.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
-                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_primary))
+                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_primary)) // Renkleri R.color dosyanızdan alın
             }
         }
     }
@@ -121,7 +120,14 @@ class TaskListAdapter(
         }
 
         override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean {
-            // isCompleted, title, durationMinutes, actualFocusedMinutes, startTime karşılaştırılmalı
+            // Task bir data class ise, '==' tüm alanları karşılaştırır.
+            // Eğer manuel karşılaştırma gerekiyorsa (örn: dropletsAwarded gibi transient olmayan alanlar):
+            // return oldItem.title == newItem.title &&
+            //        oldItem.isCompleted == newItem.isCompleted &&
+            //        oldItem.durationMinutes == newItem.durationMinutes &&
+            //        oldItem.actualFocusedMinutes == newItem.actualFocusedMinutes &&
+            //        oldItem.date == newItem.date &&
+            //        oldItem.startTime == newItem.startTime
             return oldItem == newItem
         }
     }

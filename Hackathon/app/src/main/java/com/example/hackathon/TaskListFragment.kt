@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.*
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 // import androidx.appcompat.app.AppCompatActivity // Kullanılmıyorsa kaldır
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // activityViewModels için import
@@ -25,7 +26,8 @@ import com.example.hackathon.databinding.FragmentTaskListBinding
 import com.example.hackathon.tasks.TaskListAdapter
 import com.example.hackathon.tasks.TaskViewModel
 // Navigasyon için oluşturulan Directions sınıfını import edin
-import com.example.hackathon.TaskListFragmentDirections // Bu importun doğru olduğundan emin olun
+import com.example.hackathon.TaskListFragmentDirections
+import com.example.hackathon.progress.viewmodel.GardenViewModel // GardenViewModel importu
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
@@ -50,8 +52,9 @@ class TaskListFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val taskViewModel: TaskViewModel by activityViewModels()
+    private val gardenViewModel: GardenViewModel by activityViewModels()
     private lateinit var taskListAdapter: TaskListAdapter
-    private var selectedStartTimeMillis: Long? = null // DECLARED HERE
+    private var selectedStartTimeMillis: Long? = null // Doğru yazım
 
     private val HARDCODED_GEMINI_API_KEY = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGKwKRT95g" // KENDİ GERÇEK ANAHTARINIZLA DEĞİŞTİRİN
     private val PLACEHOLDER_API_KEY_FOR_CHECK = "YOUR_ACTUAL_API_KEY_PLACEHOLDER"
@@ -169,7 +172,16 @@ class TaskListFragment : Fragment() {
                 }
             },
             onTaskCheckedChange = { task, isChecked ->
+                val taskBeforeUpdate = task
                 taskViewModel.toggleTaskCompleted(task.copy(isCompleted = isChecked))
+                if (isChecked && !taskBeforeUpdate.isCompleted) {
+                    val dropletsEarned = calculateDropletsForTask(taskBeforeUpdate)
+                    gardenViewModel.addWaterDroplets(dropletsEarned)
+                    Toast.makeText(context, "Tebrikler! $dropletsEarned damla kazandın!", Toast.LENGTH_SHORT).show()
+                    Log.i(TAG, "Görev tamamlandı: '${task.title}', $dropletsEarned damla kazanıldı.")
+                } else if (!isChecked && taskBeforeUpdate.isCompleted) {
+                    Log.d(TAG, "Görev tamamlanmamış olarak işaretlendi: '${task.title}'. Damla değişikliği yok.")
+                }
             },
             onDeleteClicked = { task ->
                 showDeleteConfirmationDialog(task)
@@ -181,6 +193,14 @@ class TaskListFragment : Fragment() {
         binding.recyclerViewTasks.apply {
             adapter = taskListAdapter
             layoutManager = LinearLayoutManager(requireContext())
+        }
+    }
+
+    private fun calculateDropletsForTask(task: Task): Int {
+        return when {
+            task.durationMinutes >= 60 -> 20
+            task.durationMinutes >= 30 -> 15
+            else -> 10
         }
     }
 
@@ -237,7 +257,7 @@ class TaskListFragment : Fragment() {
         val editTextDuration = dialogView.findViewById<EditText>(R.id.edit_text_task_duration)
         val buttonSetStartTime = dialogView.findViewById<Button>(R.id.button_set_start_time)
 
-        selectedStartTimeMillis = taskToEdit?.startTime // Used here
+        selectedStartTimeMillis = taskToEdit?.startTime // Doğru yazım
 
         taskToEdit?.let {
             editTextTitle.setText(it.title)
@@ -250,7 +270,7 @@ class TaskListFragment : Fragment() {
 
         buttonSetStartTime.setOnClickListener {
             val calendar = Calendar.getInstance()
-            selectedStartTimeMillis?.let { currentTime -> calendar.timeInMillis = currentTime } // Used here
+            selectedStartTimeMillis?.let { currentTime -> calendar.timeInMillis = currentTime } // Doğru yazım
 
             TimePickerDialog(
                 requireContext(),
@@ -261,8 +281,8 @@ class TaskListFragment : Fragment() {
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
-                    selectedStartTimeMillis = selectedCalendar.timeInMillis // Assigned here
-                    updateStartTimeButtonText(buttonSetStartTime, selectedStartTimeMillis) // Used here
+                    selectedStartTimeMillis = selectedCalendar.timeInMillis // Doğru yazım
+                    updateStartTimeButtonText(buttonSetStartTime, selectedStartTimeMillis) // Doğru yazım
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
@@ -280,12 +300,12 @@ class TaskListFragment : Fragment() {
 
                 if (title.isNotEmpty()) {
                     if (taskToEdit == null) {
-                        taskViewModel.addNewTask(title, duration, selectedStartTimeMillis) // Used here
+                        taskViewModel.addNewTask(title, duration, selectedStartTimeMillis) // Doğru yazım
                     } else {
                         val updatedTask = taskToEdit.copy(
                             title = title,
                             durationMinutes = duration,
-                            startTime = selectedStartTimeMillis // Used here
+                            startTime = selectedStartTimeMillis // Doğru yazım
                         )
                         taskViewModel.updateTask(updatedTask)
                     }

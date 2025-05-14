@@ -17,8 +17,8 @@ import java.util.Locale
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
-    private lateinit var taskDao: TaskDao
-    val todayTasks: LiveData<List<Task>> // Bu, DB'den güncel görevleri çeker
+    private lateinit var taskDao: TaskDao // lateinit kaldırıldı, init içinde atanacak
+    val todayTasks: LiveData<List<Task>>
 
     private val _selectedDate = MutableLiveData<String>()
     val tasksForSelectedDate: LiveData<List<Task>> = _selectedDate.switchMap { dateStr ->
@@ -27,7 +27,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _weeklyTaskSummary = MediatorLiveData<List<DailyTaskSummary>>()
     val weeklyTaskSummary: LiveData<List<DailyTaskSummary>> = _weeklyTaskSummary
-    private val activeWeeklySummarySources = mutableListOf<LiveData<List<Task>>>()
+
+    // Aktif LiveData kaynaklarını takip etmek için liste (MediatorLiveData için)
+    val activeWeeklySummarySources = mutableListOf<LiveData<List<Task>>>()
+
 
     private val _totalPlannedFocusTimeToday = MutableLiveData<Int>()
     val totalPlannedFocusTimeToday: LiveData<Int> = _totalPlannedFocusTimeToday
@@ -35,14 +38,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _actualFocusTimeSpentToday = MutableLiveData<Int>()
     val actualFocusTimeSpentToday: LiveData<Int> = _actualFocusTimeSpentToday
 
-    private val TAG_VIEWMODEL = "TaskViewModel" // Loglama için TAG
+    private val TAG_VIEWMODEL = "TaskViewModel"
 
     private val todayTasksObserver = Observer<List<Task>> { tasks ->
         val allTasks = tasks ?: emptyList()
         Log.d(TAG_VIEWMODEL, "todayTasksObserver tetiklendi. Gelen görev sayısı: ${allTasks.size}")
-        allTasks.forEach { task ->
-            Log.d(TAG_VIEWMODEL, "  Task ID: ${task.id}, Title: ${task.title}, Planned: ${task.durationMinutes} dk, ActualFocused: ${task.actualFocusedMinutes} dk")
-        }
+        // tasks.forEach { task ->
+        //     Log.d(TAG_VIEWMODEL, "  Task ID: ${task.id}, Title: ${task.title}, Planned: ${task.durationMinutes} dk, ActualFocused: ${task.actualFocusedMinutes} dk")
+        // }
 
         val totalPlannedMinutes = allTasks.sumOf { it.durationMinutes }
         _totalPlannedFocusTimeToday.value = totalPlannedMinutes
@@ -59,11 +62,16 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     var pausedPomodoroTimeLeftMillis: Long? = null
     var pausedPomodoroSessionDurationMillis: Long? = null
 
+    // Tarih formatları
+    private val queryDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val labelMonthDayNameFormat = SimpleDateFormat("dd MMM EEE", Locale("tr"))
+
+
     init {
         Log.d(TAG_VIEWMODEL, "TaskViewModel init bloğu çalışıyor.")
         val database = AppDatabase.getDatabase(application)
         taskDao = database.taskDao()
-        todayTasks = taskDao.getTodayTasks() // Bu, DB'den LiveData olarak görevleri alır
+        todayTasks = taskDao.getTodayTasks()
         Log.d(TAG_VIEWMODEL, "todayTasks LiveData'sı Dao'dan alındı.")
         todayTasks.observeForever(todayTasksObserver)
         Log.d(TAG_VIEWMODEL, "todayTasksObserver eklendi.")
@@ -96,7 +104,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 taskDao.updateTask(updatedTask)
                 Log.i(TAG_VIEWMODEL, "Veritabanı güncellendi: Task ID $taskId, Yeni ActualFocused: $newFocusedTime dk.")
 
-                // Güncellemenin hemen ardından veritabanından görevi tekrar okuyup loglayalım (doğrulama için)
                 val taskFromDbAfterUpdate = taskDao.getTaskById(taskId)
                 if (taskFromDbAfterUpdate != null) {
                     Log.i(TAG_VIEWMODEL, "DB'den doğrulama: Task ID ${taskFromDbAfterUpdate.id}, Güncel ActualFocused: ${taskFromDbAfterUpdate.actualFocusedMinutes} dk")
@@ -126,10 +133,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         todayTasks.removeObserver(todayTasksObserver)
-        activeWeeklySummarySources.forEach { source ->
+        activeWeeklySummarySources.forEach { source -> // Değişiklik burada
             _weeklyTaskSummary.removeSource(source)
         }
-        activeWeeklySummarySources.clear()
+        activeWeeklySummarySources.clear() // Değişiklik burada
         Log.d(TAG_VIEWMODEL, "TaskViewModel onCleared çağrıldı, observer'lar kaldırıldı.")
     }
 
@@ -160,7 +167,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleTaskCompleted(taskToToggle: Task) {
-        // TaskListAdapter'dan gelen task zaten güncel isCompleted durumunu içeriyor olmalı.
         updateTask(taskToToggle)
     }
 
@@ -185,8 +191,73 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Belirtilen haftanın başlangıç tarihinden itibaren 7 günlük görev özetini yükler.
+     * _weeklyTaskSummary LiveData'sını günceller.
+     */
     fun loadWeeklyTaskSummary(startDateOfWeek: Date) {
-        // ... (Mevcut kodunuzdaki gibi, değişiklik yok) ...
+        Log.d(TAG_VIEWMODEL, "loadWeeklyTaskSummary çağrıldı, başlangıç tarihi: $startDateOfWeek")
+
+        // 1. Önceki kaynakları MediatorLiveData'dan temizle
+        activeWeeklySummarySources.forEach { _weeklyTaskSummary.removeSource(it) }
+        activeWeeklySummarySources.clear()
+
+        val calendar = Calendar.getInstance()
+        calendar.time = startDateOfWeek
+        // Saat, dakika, saniye ve milisaniyeyi sıfırla (sadece tarih karşılaştırması için)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+
+
+        val datesForWeek = mutableListOf<Date>()
+        for (i in 0 until 7) {
+            datesForWeek.add(calendar.time)
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        // Haftanın her günü için en son görev listesini tutacak harita
+        val weeklyDataAggregator = mutableMapOf<String, List<Task>>()
+        // Kaç gün için veri beklendiğini ve kaçının geldiğini takip et
+        val expectedDays = datesForWeek.size
+        var receivedDays = 0 // Bu sayaç, tüm günlerin ilk verisi geldiğinde bir kez toplu işlem yapmak için kullanılabilir.
+        // Ancak MediatorLiveData'nın doğası gereği her değişiklikte tetiklenmesi daha reaktiftir.
+
+        datesForWeek.forEach { date ->
+            val dateStringForQuery = queryDateFormat.format(date)
+            val dailyTasksLiveData = taskDao.getTasksForDate(dateStringForQuery)
+
+            activeWeeklySummarySources.add(dailyTasksLiveData) // Takip listesine ekle
+
+            _weeklyTaskSummary.addSource(dailyTasksLiveData) { tasks ->
+                // Bu tarih için en son görev listesini güncelle
+                weeklyDataAggregator[dateStringForQuery] = tasks ?: emptyList()
+                Log.d(TAG_VIEWMODEL, "Tarih: $dateStringForQuery, Görev sayısı: ${tasks?.size ?: 0}")
+
+                // Tüm günler için (en az bir kez) veri geldiğinde veya herhangi bir günün verisi güncellendiğinde
+                // haftalık özeti yeniden oluştur ve post et.
+                // weeklyDataAggregator.keys.size == expectedDays kontrolü, ilk yükleme için yararlı olabilir,
+                // ancak sonrasında herhangi bir günün verisi değiştiğinde de güncelleme yapılmalı.
+                // MediatorLiveData zaten bunu yapar.
+
+                val summaries = datesForWeek.map { d ->
+                    val queryDateStr = queryDateFormat.format(d)
+                    val tasksForDay = weeklyDataAggregator[queryDateStr] ?: emptyList()
+                    val dayLabel = labelMonthDayNameFormat.format(d).replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale("tr")) else it.toString()
+                    }
+                    DailyTaskSummary(
+                        date = d, // Navigasyon için gerçek tarihi sakla
+                        taskCount = tasksForDay.size,
+                        completedTaskCount = tasksForDay.count { it.isCompleted },
+                        label = dayLabel // PieChart için etiket
+                    )
+                }
+                Log.d(TAG_VIEWMODEL, "Haftalık özet güncellendi. _weeklyTaskSummary'e ${summaries.size} özet gönderiliyor.")
+                _weeklyTaskSummary.postValue(summaries)
+            }
+        }
     }
 
     fun getTasksLiveDataForSpecificDate(dateString: String): LiveData<List<Task>> {
