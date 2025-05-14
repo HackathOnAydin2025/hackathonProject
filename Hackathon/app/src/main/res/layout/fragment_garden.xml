@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/app_background"
-    tools:context="GardenFragment"> <com.google.android.material.card.MaterialCardView
+    tools:context=".GardenFragment"> <com.google.android.material.card.MaterialCardView
     android:id="@+id/card_garden_stats"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
@@ -40,9 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             tools:text="125 Damla Toplandı"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnPrimaryContainer"
-            android:textStyle="bold"/>
+            android:textAppearance="?attr/textAppearanceSubtitle1" android:textColor="?attr/colorOnPrimaryContainer" android:textSize="18sp" android:textStyle="bold"/>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
 
@@ -51,30 +49,24 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
-        android:background="@drawable/bg_garden_3d_placeholder"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@drawable/bg_garden_3d_placeholder" app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/card_garden_stats"></FrameLayout>
+        app:layout_constraintTop_toBottomOf="@id/card_garden_stats"/>
 
     <TextView
         android:id="@+id/textView_garden_empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="3D Bahçeniz henüz boş.\nGörevleri tamamlayarak su damlaları toplayın ve ilk 3D fidanınızı dikin! 🌱"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceBody1" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="16sp" android:gravity="center"
         android:lineSpacingMultiplier="1.2"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/frame_layout_garden_3d_view"
+        android:visibility="gone" app:layout_constraintTop_toTopOf="@id/frame_layout_garden_3d_view"
         app:layout_constraintBottom_toBottomOf="@id/frame_layout_garden_3d_view"
         app:layout_constraintStart_toStartOf="@id/frame_layout_garden_3d_view"
         app:layout_constraintEnd_toEndOf="@id/frame_layout_garden_3d_view"
         android:padding="32dp"
         tools:visibility="visible"/>
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

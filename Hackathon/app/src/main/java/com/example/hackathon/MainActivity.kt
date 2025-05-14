@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener {
             // FAB'a tıklandığında yapılacak işlem
             // Örneğin: Yeni bir görev ekleme ekranına gitmek,
-            // navController.navigate(R.id.yourAddTaskFragmentDestination)
+            navController.navigate(R.id.action_global_gardenFragment)
             // veya başka bir özel işlem.
             // "masal" ikonu özel bir şeyi çağrıştırıyorsa ona uygun bir işlem.
             // Şimdilik bir Toast mesajı gösterelim:

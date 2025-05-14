@@ -3,6 +3,8 @@ package com.example.hackathon // Ana paket adınız
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.TimePickerDialog
+import android.content.DialogInterface // DialogInterface importu eklendi
+import android.graphics.Color // Color importu eklendi
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -54,11 +56,11 @@ class TaskListFragment : Fragment() {
     private val taskViewModel: TaskViewModel by activityViewModels()
     private val gardenViewModel: GardenViewModel by activityViewModels()
     private lateinit var taskListAdapter: TaskListAdapter
-    private var selectedStartTimeMillis: Long? = null // Doğru yazım
+    private var selectedStartTimeMillis: Long? = null
 
     private val HARDCODED_GEMINI_API_KEY = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGKwKRT95g" // KENDİ GERÇEK ANAHTARINIZLA DEĞİŞTİRİN
     private val PLACEHOLDER_API_KEY_FOR_CHECK = "YOUR_ACTUAL_API_KEY_PLACEHOLDER"
-    private val EXAMPLE_API_KEY_TO_WARN_USER = "AIzaSyBZUK1zYNcZ7d3rnUQBZhwd6sGKwKRT95g"
+    private val EXAMPLE_API_KEY_TO_WARN_USER = "AIzaSyBZUK1zYNcZ7d3rnUQBZh"
     private val TAG = "TaskListFragment"
 
     private val generativeModel: GenerativeModel? by lazy {
@@ -144,7 +146,7 @@ class TaskListFragment : Fragment() {
                 }
             }
             chipGroup.addView(chip)
-            if (i == 0) { chip.isChecked = true }
+            if (i == 0) { chip.isChecked = true } // İlk çipi varsayılan olarak seçili yap
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
@@ -152,11 +154,18 @@ class TaskListFragment : Fragment() {
     private fun updateHeaderForSelectedDate(selectedCalendar: Calendar) {
         val sdfHeaderDate = SimpleDateFormat("dd MMM", Locale("tr")); binding.textViewHeaderDateCentered.text = sdfHeaderDate.format(selectedCalendar.time)
         val todayCal = Calendar.getInstance()
-        if (isSameDay(selectedCalendar, todayCal)) { binding.textViewHeaderToday.text = "Today" }
-        else { val sdfDayNameFull = SimpleDateFormat("EEEE", Locale("tr")); binding.textViewHeaderToday.text = sdfDayNameFull.format(selectedCalendar.time) }
+        if (isSameDay(selectedCalendar, todayCal)) {
+            binding.textViewHeaderToday.text = "Today"
+        } else {
+            val sdfDayNameFull = SimpleDateFormat("EEEE", Locale("tr"))
+            binding.textViewHeaderToday.text = sdfDayNameFull.format(selectedCalendar.time)
+        }
     }
 
-    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean { return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR) }
+    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+    }
 
     private fun setupRecyclerView() {
         taskListAdapter = TaskListAdapter(
@@ -172,21 +181,23 @@ class TaskListFragment : Fragment() {
                 }
             },
             onTaskCheckedChange = { task, isChecked ->
-                val taskBeforeUpdate = task
-                taskViewModel.toggleTaskCompleted(task.copy(isCompleted = isChecked))
-                if (isChecked && !taskBeforeUpdate.isCompleted) {
+                val taskBeforeUpdate = task // Orijinal durumu sakla
+                taskViewModel.toggleTaskCompleted(task.copy(isCompleted = isChecked)) // ViewModel'i güncelle
+
+                if (isChecked && !taskBeforeUpdate.isCompleted) { // Eğer işaretlendi ve daha önce işaretli değildiyse
                     val dropletsEarned = calculateDropletsForTask(taskBeforeUpdate)
                     gardenViewModel.addWaterDroplets(dropletsEarned)
                     Toast.makeText(context, "Tebrikler! $dropletsEarned damla kazandın!", Toast.LENGTH_SHORT).show()
                     Log.i(TAG, "Görev tamamlandı: '${task.title}', $dropletsEarned damla kazanıldı.")
-                } else if (!isChecked && taskBeforeUpdate.isCompleted) {
-                    Log.d(TAG, "Görev tamamlanmamış olarak işaretlendi: '${task.title}'. Damla değişikliği yok.")
+                } else if (!isChecked && taskBeforeUpdate.isCompleted) { // Eğer işaret kaldırıldı ve daha önce işaretliydiyse
+                    // İsteğe bağlı: Damlaları geri alma mantığı eklenebilir
+                    Log.d(TAG, "Görev tamamlanmamış olarak işaretlendi: '${task.title}'. Damla değişikliği yok (veya geri alınabilir).")
                 }
             },
             onDeleteClicked = { task ->
                 showDeleteConfirmationDialog(task)
             },
-            onEditTaskClicked = { task ->
+            onEditTaskClicked = { task -> // Bu callback TaskListAdapter'da tanımlı olmalı
                 showAddTaskOrEditDialog(task)
             }
         )
@@ -197,6 +208,7 @@ class TaskListFragment : Fragment() {
     }
 
     private fun calculateDropletsForTask(task: Task): Int {
+        // Görev tamamlandığında kazanılacak damla miktarı
         return when {
             task.durationMinutes >= 60 -> 20
             task.durationMinutes >= 30 -> 15
@@ -204,52 +216,132 @@ class TaskListFragment : Fragment() {
         }
     }
 
-    private fun setupAddNewTaskButtonHeader() { binding.buttonAddNewTaskHeader.setOnClickListener { showAddTaskOrEditDialog(null) } }
+    private fun setupAddNewTaskButtonHeader() {
+        binding.buttonAddNewTaskHeader.setOnClickListener {
+            showAddTaskOrEditDialog(null) // Yeni görev eklemek için null task gönder
+        }
+    }
 
     private fun setupGeminiButton() {
         binding.buttonAskGemini.setOnClickListener {
-            if (generativeModel == null) { Log.e(TAG, "Gemini Modeli başlatılmadı."); Snackbar.make(binding.root, "Gemini servisi kullanılamıyor. API anahtarınızı kontrol edin.", Snackbar.LENGTH_LONG).show(); return@setOnClickListener }
+            if (generativeModel == null) {
+                Log.e(TAG, "Gemini Modeli başlatılmadı.")
+                Snackbar.make(binding.root, "Gemini servisi kullanılamıyor. API anahtarınızı kontrol edin.", Snackbar.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             val uncompletedTasks = taskListAdapter.currentList.filter { !it.isCompleted }
-            if (uncompletedTasks.isEmpty()) { Snackbar.make(binding.root, "Öneri almak için tamamlanmamış göreviniz olmalı.", Snackbar.LENGTH_LONG).show(); return@setOnClickListener }
+            if (uncompletedTasks.isEmpty()) {
+                Snackbar.make(binding.root, "Öneri almak için tamamlanmamış göreviniz olmalı.", Snackbar.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             askGeminiForTimeManagementSuggestions(uncompletedTasks)
         }
     }
 
     private fun askGeminiForTimeManagementSuggestions(tasks: List<Task>) {
-        val currentModel = generativeModel ?: return Unit.also { Log.e(TAG, "askGemini: Model null."); Snackbar.make(binding.root, "Gemini servisi başlatılamadı.", Snackbar.LENGTH_LONG).show() }
-        showLoading(true); val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val taskDetails = tasks.joinToString(separator = "\n- ", prefix = "- ") { task -> val startTimeString = task.startTime?.let { " (Başlangıç: ${timeFormat.format(Date(it))})" } ?: ""; "'${task.title}' (Tahmini Süre: ${task.durationMinutes} dakika)$startTimeString" }
-        val prompt = "Merhaba! Bugünkü tamamlanmamış görevlerim:\n$taskDetails\nBu görevleri en verimli şekilde tamamlamak için bir zaman planı oluştur. Görev sırası, süreler (tahmini ve başlangıç saatlerini dikkate al) ve kısa molalar içeren bir günlük akış öner. Cevabın sadece madde madde öneri listesi olsun, giriş/sonuç cümlesi ekleme.\nÖrnek:\n1. 'Kitap Oku' (09:00-09:30) - 30dk.\n2. Mola (09:30-09:35) - 5dk.\n3. 'Ödev Yap' (09:35-10:20) - 45dk."; Log.d(TAG, "Prompt: $prompt")
-        lifecycleScope.launch { try { val response = currentModel.generateContent(prompt); showGeminiSuggestionsDialog(response.text ?: "Öneri alınamadı.") } catch (e: Exception) { Log.e(TAG, "Gemini hata: ${e.message}", e); handleGeminiError(e) } finally { showLoading(false) } }
+        val currentModel = generativeModel ?: return Unit.also {
+            Log.e(TAG, "askGemini: Model null.")
+            Snackbar.make(binding.root, "Gemini servisi başlatılamadı.", Snackbar.LENGTH_LONG).show()
+        }
+        showLoading(true)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val taskDetails = tasks.joinToString(separator = "\n- ", prefix = "- ") { task ->
+            val startTimeString = task.startTime?.let { " (Başlangıç: ${timeFormat.format(Date(it))})" } ?: ""
+            "'${task.title}' (Tahmini Süre: ${task.durationMinutes} dakika)$startTimeString"
+        }
+        val prompt = """
+        Merhaba! Bugünkü tamamlanmamış görevlerim:
+        $taskDetails
+        Bu görevleri en verimli şekilde tamamlamak için bir zaman planı oluştur. Görev sırası, süreler (tahmini ve başlangıç saatlerini dikkate al) ve kısa molalar içeren bir günlük akış öner. Cevabın sadece madde madde öneri listesi olsun, giriş/sonuç cümlesi ekleme.
+        Örnek:
+        1. 'Kitap Oku' (09:00-09:30) - 30dk.
+        2. Mola (09:30-09:35) - 5dk.
+        3. 'Ödev Yap' (09:35-10:20) - 45dk.
+        """.trimIndent()
+        Log.d(TAG, "Prompt: $prompt")
+        lifecycleScope.launch {
+            try {
+                val response = currentModel.generateContent(prompt)
+                showGeminiSuggestionsDialog(response.text ?: "Öneri alınamadı.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Gemini hata: ${e.message}", e)
+                handleGeminiError(e)
+            } finally {
+                showLoading(false)
+            }
+        }
     }
 
     private fun handleGeminiError(e: Exception) {
-        val errorMessage = when (e) { is PromptBlockedException -> "İstek güvenlik nedeniyle engellendi."; is UnsupportedUserLocationException -> "Bölgeniz desteklenmiyor."; is ServerException -> "Gemini sunucu hatası."; is RequestTimeoutException -> "İstek zaman aşımına uğradı."; is UnknownHostException, is ConnectException -> "İnternet bağlantınızı kontrol edin."; else -> "Beklenmedik hata: (${e.javaClass.simpleName})" }; Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
+        val errorMessage = when (e) {
+            is PromptBlockedException -> "İstek güvenlik nedeniyle engellendi."
+            is UnsupportedUserLocationException -> "Bölgeniz desteklenmiyor."
+            is ServerException -> "Gemini sunucu hatası."
+            is RequestTimeoutException -> "İstek zaman aşımına uğradı."
+            is UnknownHostException, is ConnectException -> "İnternet bağlantınızı kontrol edin."
+            else -> "Beklenmedik hata: (${e.javaClass.simpleName})"
+        }
+        Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
     }
 
-    private fun showGeminiSuggestionsDialog(suggestions: String) { MaterialAlertDialogBuilder(requireContext()).setTitle("✨ Gemini'den Zaman Planı").setMessage(suggestions).setPositiveButton("Harika!") { d, _ -> d.dismiss() }.show() }
-    private fun showLoading(isLoading: Boolean) { binding.progressBarGemini.visibility = if (isLoading) View.VISIBLE else View.GONE; binding.buttonAskGemini.isEnabled = !isLoading; binding.buttonAddNewTaskHeader.isEnabled = !isLoading }
+    private fun showGeminiSuggestionsDialog(suggestions: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("✨ Gemini'den Zaman Planı")
+            .setMessage(suggestions)
+            .setPositiveButton("Harika!") { d, _ -> d.dismiss() }
+            .show()
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        binding.progressBarGemini.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.buttonAskGemini.isEnabled = !isLoading
+        binding.buttonAddNewTaskHeader.isEnabled = !isLoading
+    }
+
 
     private fun observeViewModel() {
+        // Bugünün görevlerini gözlemle (sadece bugün çipi seçiliyse veya başlangıçta)
         taskViewModel.todayTasks.observe(viewLifecycleOwner, Observer { tasks ->
             val todayCal = Calendar.getInstance()
-            val selectedChipTag = binding.chipGroupDates.findViewById<Chip>(binding.chipGroupDates.checkedChipId)?.tag as? Calendar
+            val selectedChip = binding.chipGroupDates.findViewById<Chip>(binding.chipGroupDates.checkedChipId)
+            val selectedChipTag = selectedChip?.tag as? Calendar
+
+            // Eğer hiçbir çip seçili değilse (ilk açılış gibi) veya seçili çip bugünse
             if (selectedChipTag == null || isSameDay(selectedChipTag, todayCal)) {
-                if (selectedChipTag == null) { updateHeaderForSelectedDate(todayCal) }
+                if (selectedChipTag == null && binding.chipGroupDates.childCount > 0) {
+                    // Başlangıçta ilk çipi (bugünü temsil eden) seçili yap ve başlığı güncelle
+                    (binding.chipGroupDates.getChildAt(0) as? Chip)?.isChecked = true
+                    updateHeaderForSelectedDate(todayCal) // Başlığı bugün için ayarla
+                }
                 binding.textViewHeaderTaskCount.text = "${tasks.size} Görev"
-                taskListAdapter.submitList(tasks.sortedByDescending { it.creationTimestamp })
+                taskListAdapter.submitList(tasks.sortedByDescending { it.creationTimestamp }) // En yeniden eskiye
                 updateEmptyView(tasks.isEmpty())
             }
         })
 
+        // Seçilen tarihe göre görevleri gözlemle
         taskViewModel.tasksForSelectedDate.observe(viewLifecycleOwner, Observer { tasks ->
-            binding.textViewHeaderTaskCount.text = "${tasks.size} Görev"
-            taskListAdapter.submitList(tasks.sortedBy { it.creationTimestamp })
-            updateEmptyView(tasks.isEmpty())
+            // Bu observer sadece todayTasks observer'ı ilgilenmediğinde (yani farklı bir gün seçildiğinde)
+            // listeyi güncellemeli. Aksi takdirde todayTasks zaten bugünün görevlerini yüklüyor.
+            val todayCal = Calendar.getInstance()
+            val selectedChip = binding.chipGroupDates.findViewById<Chip>(binding.chipGroupDates.checkedChipId)
+            val selectedChipTag = selectedChip?.tag as? Calendar
+
+            if (selectedChipTag != null && !isSameDay(selectedChipTag, todayCal)) {
+                binding.textViewHeaderTaskCount.text = "${tasks.size} Görev"
+                // Seçilen tarihe göre görevler genellikle oluşturulma zamanına göre artan sırada istenir.
+                // TaskDao'daki getTasksForDate sorgusu zaten ASC sıralıyor.
+                taskListAdapter.submitList(tasks)
+                updateEmptyView(tasks.isEmpty())
+            }
         })
     }
 
-    private fun updateEmptyView(isEmpty: Boolean) { binding.recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE; binding.textViewEmptyListPlaceholder.visibility = if (isEmpty) View.VISIBLE else View.GONE }
+
+    private fun updateEmptyView(isEmpty: Boolean) {
+        binding.recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        binding.textViewEmptyListPlaceholder.visibility = if (isEmpty) View.VISIBLE else View.GONE
+    }
 
     private fun showAddTaskOrEditDialog(taskToEdit: Task?) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_task, null)
@@ -257,20 +349,20 @@ class TaskListFragment : Fragment() {
         val editTextDuration = dialogView.findViewById<EditText>(R.id.edit_text_task_duration)
         val buttonSetStartTime = dialogView.findViewById<Button>(R.id.button_set_start_time)
 
-        selectedStartTimeMillis = taskToEdit?.startTime // Doğru yazım
+        selectedStartTimeMillis = taskToEdit?.startTime
 
         taskToEdit?.let {
             editTextTitle.setText(it.title)
             editTextDuration.setText(it.durationMinutes.toString())
             updateStartTimeButtonText(buttonSetStartTime, it.startTime)
         } ?: run {
-            editTextDuration.setText("25") // Default duration
+            editTextDuration.setText("25") // Varsayılan süre
             updateStartTimeButtonText(buttonSetStartTime, null)
         }
 
         buttonSetStartTime.setOnClickListener {
             val calendar = Calendar.getInstance()
-            selectedStartTimeMillis?.let { currentTime -> calendar.timeInMillis = currentTime } // Doğru yazım
+            selectedStartTimeMillis?.let { currentTime -> calendar.timeInMillis = currentTime }
 
             TimePickerDialog(
                 requireContext(),
@@ -281,16 +373,16 @@ class TaskListFragment : Fragment() {
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
-                    selectedStartTimeMillis = selectedCalendar.timeInMillis // Doğru yazım
-                    updateStartTimeButtonText(buttonSetStartTime, selectedStartTimeMillis) // Doğru yazım
+                    selectedStartTimeMillis = selectedCalendar.timeInMillis
+                    updateStartTimeButtonText(buttonSetStartTime, selectedStartTimeMillis)
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
-                true
+                true // 24 saat formatı
             ).show()
         }
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (taskToEdit == null) "Yeni Görev Ekle" else "Görevi Düzenle")
             .setView(dialogView)
             .setNegativeButton("İptal", null)
@@ -300,22 +392,33 @@ class TaskListFragment : Fragment() {
 
                 if (title.isNotEmpty()) {
                     if (taskToEdit == null) {
-                        taskViewModel.addNewTask(title, duration, selectedStartTimeMillis) // Doğru yazım
+                        taskViewModel.addNewTask(title, duration, selectedStartTimeMillis)
                     } else {
                         val updatedTask = taskToEdit.copy(
                             title = title,
                             durationMinutes = duration,
-                            startTime = selectedStartTimeMillis // Doğru yazım
+                            startTime = selectedStartTimeMillis
                         )
                         taskViewModel.updateTask(updatedTask)
                     }
-                    selectedStartTimeMillis = null // Reset after use
+                    selectedStartTimeMillis = null // Kullanımdan sonra sıfırla
                 } else {
                     Snackbar.make(binding.root, "Görev başlığı boş olamaz!", Snackbar.LENGTH_SHORT).show()
                 }
             }
-            .setOnDismissListener { selectedStartTimeMillis = null } // Reset if dialog is dismissed
-            .show()
+            .setOnDismissListener {
+                selectedStartTimeMillis = null // Dialog kapatıldığında sıfırla
+            }
+            .show() // Önce dialog'u göster
+
+        // Dialog gösterildikten sonra butonların rengini ayarla
+        // Butonların ID'leri standarttır: DialogInterface.BUTTON_POSITIVE, DialogInterface.BUTTON_NEGATIVE
+        try {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.WHITE)
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.WHITE)
+        } catch (e: Exception) {
+            Log.e(TAG, "Dialog buton rengi ayarlanırken hata: ${e.message}", e)
+        }
     }
 
     private fun updateStartTimeButtonText(button: Button, timeMillis: Long?) {
@@ -327,9 +430,72 @@ class TaskListFragment : Fragment() {
         }
     }
 
-    private fun showDeleteConfirmationDialog(task: Task) { MaterialAlertDialogBuilder(requireContext()).setTitle("Görevi Sil").setMessage("'${task.title}' başlıklı görevi silmek istediğinizden emin misiniz?").setNegativeButton("İptal", null).setPositiveButton("Sil") { _, _ -> taskViewModel.deleteTask(task); Snackbar.make(binding.root, "'${task.title}' silindi.", Snackbar.LENGTH_LONG).setAction("Geri Al") { taskViewModel.insertTask(task.copy(id = 0)) }.show() }.show() }
-    private fun setupItemTouchHelper() { val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) { override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false; override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) { val position = viewHolder.adapterPosition; if (position != RecyclerView.NO_POSITION) { val taskToDelete = taskListAdapter.currentList[position]; showDeleteConfirmationDialog(taskToDelete); taskListAdapter.notifyItemChanged(position) } } }; ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewTasks) }
-    private fun logApiKeyStatus() { try { val apiKeyStatus = if (HARDCODED_GEMINI_API_KEY.isBlank() || HARDCODED_GEMINI_API_KEY == PLACEHOLDER_API_KEY_FOR_CHECK || HARDCODED_GEMINI_API_KEY == EXAMPLE_API_KEY_TO_WARN_USER) "Eksik/Yer Tutucu/Örnek Anahtar" else "Mevcut (Hardcoded)"; Log.d("GeminiApiKeyCheck", "API Anahtarı Durumu: $apiKeyStatus") } catch (e: Exception) { Log.e("BuildConfigCheck", "API Key loglama hatası: ", e) } }
+    private fun showDeleteConfirmationDialog(task: Task) {
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Görevi Sil")
+            .setMessage("'${task.title}' başlıklı görevi silmek istediğinizden emin misiniz?")
+            .setNegativeButton("İptal", null)
+            .setPositiveButton("Sil") { _, _ ->
+                taskViewModel.deleteTask(task)
+                Snackbar.make(binding.root, "'${task.title}' silindi.", Snackbar.LENGTH_LONG)
+                    .setAction("Geri Al") {
+                        // Silinen görevi geri ekle (id'si 0 olmalı ki yeni bir görev olarak eklensin)
+                        taskViewModel.insertTask(task.copy(id = 0))
+                    }
+                    .show()
+            }
+            .show()
+
+        // Silme dialoğu için de buton renklerini ayarlayabilirsiniz (isteğe bağlı)
+        // try {
+        //     dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.RED) // Örnek: Sil butonunu kırmızı yapmak
+        //     dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.DKGRAY)
+        // } catch (e: Exception) {
+        //     Log.e(TAG, "Silme Dialog buton rengi ayarlanırken hata: ${e.message}", e)
+        // }
+    }
+
+
+    private fun setupItemTouchHelper() {
+        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                return false // Sürükle ve bırak desteği yok
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.bindingAdapterPosition // bindingAdapterPosition kullanmak daha güvenli
+                if (position != RecyclerView.NO_POSITION) {
+                    val taskToDelete = taskListAdapter.currentList[position]
+                    showDeleteConfirmationDialog(taskToDelete)
+                    // Silme işlemi dialoğda onaylandıktan sonra gerçekleşeceği için,
+                    // burada adapter'ı hemen güncellemek yerine, ViewModel'deki değişiklikleri
+                    // observe ederek listenin güncellenmesini beklemek daha doğru olur.
+                    // Ancak, kaydırma animasyonunun düzgün çalışması için notifyItemChanged çağrılabilir.
+                    taskListAdapter.notifyItemChanged(position)
+                }
+            }
+        }
+        ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewTasks)
+    }
+
+    private fun logApiKeyStatus() {
+        try {
+            val apiKeyStatus = if (HARDCODED_GEMINI_API_KEY.isBlank() ||
+                HARDCODED_GEMINI_API_KEY == PLACEHOLDER_API_KEY_FOR_CHECK ||
+                HARDCODED_GEMINI_API_KEY == EXAMPLE_API_KEY_TO_WARN_USER) {
+                "Eksik/Yer Tutucu/Örnek Anahtar"
+            } else {
+                "Mevcut (Hardcoded)"
+            }
+            Log.d("GeminiApiKeyCheck", "API Anahtarı Durumu: $apiKeyStatus")
+            if (apiKeyStatus != "Mevcut (Hardcoded)") {
+                // Kullanıcıyı uyarmak için bir Toast veya Snackbar gösterebilirsiniz.
+                // Toast.makeText(context, "Gemini API anahtarı ayarlanmamış veya geçersiz.", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Log.e("BuildConfigCheck", "API Key loglama hatası: ", e)
+        }
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

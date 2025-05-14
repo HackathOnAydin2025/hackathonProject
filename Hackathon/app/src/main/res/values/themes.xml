@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.Hackathon" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.Hackathon" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
         <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
@@ -30,22 +30,22 @@
         <item name="materialCardViewStyle">@style/Widget.App.TaskCard</item>
         <item name="materialButtonStyle">@style/Widget.App.Button.Primary</item>
         <item name="chipStyle">@style/Widget.App.DateChip</item>
+
     </style>
 
     <style name="Theme.Hackathon" parent="Base.Theme.Hackathon" />
 
-    <style name="Widget.App.TaskCard" parent="Widget.Material3.CardView.Elevated">
+    <style name="Widget.App.TaskCard" parent="Widget.MaterialComponents.CardView">
         <item name="cardElevation">2dp</item>
         <item name="cardCornerRadius">16dp</item>
         <item name="cardBackgroundColor">@color/app_card_background</item>
         <item name="android:layout_marginBottom">10dp</item>
     </style>
 
-    <style name="Widget.App.Button.Primary" parent="Widget.Material3.Button">
-        <item name="android:backgroundTint">@color/app_primary</item>
+    <style name="Widget.App.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/app_primary</item>
         <item name="android:textColor">@color/app_on_primary</item>
-        <item name="cornerRadius">20dp</item>
-        <item name="android:paddingStart">20dp</item>
+        <item name="cornerRadius">20dp</item> <item name="android:paddingStart">20dp</item>
         <item name="android:paddingEnd">20dp</item>
         <item name="android:paddingTop">10dp</item>
         <item name="android:paddingBottom">10dp</item>
@@ -53,75 +53,69 @@
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="Widget.App.Button.AddNewHeader" parent="Widget.Material3.Button">
-        <item name="android:backgroundTint">@color/app_button_add_new_bg</item>
+    <style name="Widget.App.Button.AddNewHeader" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/app_button_add_new_bg</item>
         <item name="android:textColor">@color/app_button_add_new_text</item>
         <item name="iconTint">@color/app_button_add_new_icon</item>
-        <item name="cornerRadius">12dp</item>
-        <item name="android:paddingStart">12dp</item>
+        <item name="cornerRadius">12dp</item> <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
         <item name="android:paddingTop">8dp</item>
         <item name="android:paddingBottom">8dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="elevation">1dp</item>
-    </style>
+        <item name="android:elevation">1dp</item> </style>
 
-    <style name="Widget.App.Button.AskGemini" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="Widget.App.Button.AskGemini" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="strokeColor">@color/app_gemini_button_stroke</item>
         <item name="android:textColor">@color/app_gemini_button_text</item>
         <item name="iconTint">@color/app_gemini_button_icon</item>
-        <item name="cornerRadius">24dp</item>
-        <item name="android:paddingTop">14dp</item>
+        <item name="cornerRadius">24dp</item> <item name="android:paddingTop">14dp</item>
         <item name="android:paddingBottom">14dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="Widget.App.DateChip" parent="Widget.Material3.Chip.Filter">
+    <style name="Widget.App.DateChip" parent="Widget.MaterialComponents.Chip.Filter">
         <item name="chipBackgroundColor">@color/chip_background_selector</item>
         <item name="android:textColor">@color/chip_text_selector</item>
         <item name="chipCornerRadius">12dp</item>
         <item name="chipMinHeight">48dp</item>
-        <item name="android:elevation">1dp</item>
         <item name="chipStrokeWidth">0dp</item>
         <item name="android:paddingStart">8dp</item>
         <item name="android:paddingEnd">8dp</item>
         <item name="ensureMinTouchTargetSize">false</item>
     </style>
 
-    <style name="TextAppearance.App.HeaderDateCentered" parent="TextAppearance.Material3.TitleMedium">
+    <style name="TextAppearance.App.HeaderDateCentered" parent="TextAppearance.MaterialComponents.Subtitle1">
         <item name="android:textColor">@color/app_on_primary</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.App.HeaderToday" parent="TextAppearance.Material3.DisplaySmall">
+    <style name="TextAppearance.App.HeaderToday" parent="TextAppearance.MaterialComponents.Headline4">
         <item name="android:textColor">@color/app_on_primary</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.App.HeaderTaskCount" parent="TextAppearance.Material3.BodyMedium">
+    <style name="TextAppearance.App.HeaderTaskCount" parent="TextAppearance.MaterialComponents.Body2">
         <item name="android:textColor">@color/app_on_primary</item>
         <item name="alpha">0.85</item>
     </style>
 
-    <style name="TextAppearance.App.MyTasksLabel" parent="TextAppearance.Material3.TitleLarge">
+    <style name="TextAppearance.App.MyTasksLabel" parent="TextAppearance.MaterialComponents.Headline5">
         <item name="android:textColor">@color/app_on_background</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.App.TaskTitle" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:textColor">@color/app_on_card_text_primary</item>
+    <style name="TextAppearance.App.TaskTitle" parent="TextAppearance.MaterialComponents.Subtitle1"> <item name="android:textColor">@color/app_on_card_text_primary</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.App.TaskTime" parent="TextAppearance.Material3.LabelMedium">
+    <style name="TextAppearance.App.TaskTime" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textColor">@color/app_on_card_text_secondary</item>
     </style>
 
-    <style name="TextAppearance.App.TaskDescription" parent="TextAppearance.Material3.BodySmall">
+    <style name="TextAppearance.App.TaskDescription" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textColor">@color/app_on_card_text_secondary</item>
     </style>
 </resources>
-
