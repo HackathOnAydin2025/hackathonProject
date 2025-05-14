@@ -1,4 +1,4 @@
-package com.example.hackathon.garden // Kendi paket yapınıza göre güncelleyin
+package com.example.hackathon // Kendi paket yapınıza göre güncelleyin
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -12,26 +12,16 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import com.example.hackathon.databinding.FragmentGardenBinding // XML dosyanızın adına göre (fragment_garden_3d_xml.xml -> FragmentGarden3dXmlBinding)
-import org.json.JSONArray
-import org.json.JSONObject
+import com.example.hackathon.databinding.FragmentGardenBinding // XML dosyanızın adına göre
+import com.example.hackathon.data.GardenObjectData // Güncellenmiş data class importu
+import com.example.hackathon.data.GardenObjectType // Enum importu
+import com.example.hackathon.data.GardenState // Güncellenmiş data class importu
+import com.google.gson.Gson
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
+import java.util.Locale
 import java.util.UUID
-
-// Basit bir bitki veri sınıfı (JavaScript ile senkronizasyon için)
-data class PlantData(
-    val uuid: String = UUID.randomUUID().toString(),
-    var x: Float,
-    var z: Float,
-    var color: Int = 0x228B22, // ForestGreen
-    var width: Float = 0.2f,
-    var height: Float = 0.4f,
-    var scaleX: Float = 1f,
-    var scaleY: Float = 1f,
-    var scaleZ: Float = 1f,
-    var growthStage: Int = 0,
-    var waterLevel: Int = 0
-)
 
 class GardenFragment : Fragment() {
 
@@ -40,39 +30,60 @@ class GardenFragment : Fragment() {
 
     private lateinit var webView: WebView
     private val TAG = "GardenFragment"
+    private val GARDEN_STATE_FILENAME = "garden_state_v3_placeables.json" // Dosya adını güncelledim
+    private val gson = Gson()
 
-    // Bahçe verilerini saklamak için (ViewModel'de olması daha iyi)
-    private val gardenPlants = mutableListOf<PlantData>()
-    private var waterDroplets = 10 // Başlangıç su damlası (ViewModel'den gelmeli)
+    private lateinit var currentGardenState: GardenState
 
-    // Örnek ViewModel (Gerçek uygulamanızda daha kapsamlı olmalı)
-    // private val gardenViewModel: GardenViewModel by viewModels()
+    // JavaScript tarafındaki renklerle eşleşen sabitler
+    object UserColorsJs {
+        const val light_green = 0xA4B465
+        const val dirt_brown = 0x964B00
+        // Diğer renkler HTML'deki userColors objesinden alınabilir
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate çağrıldı.")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        Log.d(TAG, "onCreateView çağrıldı.")
         _binding = FragmentGardenBinding.inflate(inflater, container, false)
         webView = WebView(requireContext())
-        binding.frameLayoutGarden3dView.addView(webView) // WebView'ı FrameLayout'a ekle
-        setupWebView()
-        Log.d(TAG, "onCreateView tamamlandı.")
+        val layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        binding.frameLayoutGarden3dView.addView(webView, layoutParams)
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        Log.d(TAG, "onViewCreated çağrıldı.")
+        currentGardenState = loadInitialGardenState()
+        setupWebView() // WebView kurulumu currentGardenState yüklendikten sonra
+        updateWaterDropletsUI()
+
+        // XML'deki butonlar artık HTML içinde olduğu için buradaki listener'lar kaldırıldı.
+        // binding.buttonPlantSapling.setOnClickListener { ... }
+        Log.d(TAG, "onViewCreated tamamlandı. Yüklenen su: ${currentGardenState.waterDroplets}")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        Log.d(TAG, "setupWebView çağrılıyor.")
         webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true // Gerekli olabilir
+        webView.settings.domStorageEnabled = true
         webView.settings.loadWithOverviewMode = true
         webView.settings.useWideViewPort = true
-        webView.settings.builtInZoomControls = false // Zoom kontrollerini kapat
+        webView.settings.builtInZoomControls = false
         webView.settings.displayZoomControls = false
 
-        // JavaScript loglarını Android Logcat'e yönlendirmek için
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
-                Log.d("WebViewConsole", "${message.message()} -- From line ${message.lineNumber()} of ${message.sourceId()}")
+                Log.d("WebViewConsole", "[${message.sourceId()}:${message.lineNumber()}] ${message.message()}")
                 return true
             }
         }
@@ -80,69 +91,95 @@ class GardenFragment : Fragment() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 Log.d(TAG, "WebView sayfası yüklendi: $url")
-                // Sayfa yüklendikten sonra Android'den JavaScript'e veri gönder
-                updateJavaScriptWaterCount()
-                loadGardenStateToJavaScript()
+                if (::currentGardenState.isInitialized) {
+                    updateJavaScriptWaterCount(currentGardenState.waterDroplets)
+                    loadGardenStateToJavaScript(currentGardenState)
+                } else {
+                    Log.e(TAG, "onPageFinished: currentGardenState başlatılmamış!")
+                }
             }
         }
-
-        // Android ve JavaScript arasında köprü kurmak için
         webView.addJavascriptInterface(WebAppInterface(), "AndroidBridge")
-
-        // assets klasöründeki HTML dosyasını yükle
-        webView.loadUrl("file:///android_asset/garden_scene.html")
+        webView.loadUrl("file:///android_asset/garden_scene.html") // HTML dosya adınızın bu olduğundan emin olun
+        Log.d(TAG, "setupWebView tamamlandı.")
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        Log.d(TAG, "onViewCreated çağrıldı.")
-
-        // UI güncellemeleri (örneğin su damlası sayısı)
-        binding.textViewWaterDropletsCount.text = "$waterDroplets Damla Toplandı"
-
-        // Buton tıklama olayları (XML'deki butonlara bağlanacak)
-        binding.buttonPlantSapling.setOnClickListener {
-            // Bu buton artık HTML içinde, oradan tetiklenecek.
-            // İsterseniz buradan da JavaScript fonksiyonu çağırabilirsiniz.
-            // webView.evaluateJavascript("plantNewSapling();", null)
-            Toast.makeText(requireContext(), "Fidan dikme HTML içinden yönetiliyor.", Toast.LENGTH_SHORT).show()
+    private fun updateWaterDropletsUI() {
+        if (_binding != null && ::currentGardenState.isInitialized) {
+            binding.textViewWaterDropletsCount.text = "${currentGardenState.waterDroplets} Damla Toplandı"
         }
-
-        // Başlangıçta bahçe durumunu yükle (eğer varsa)
-        // loadGardenStateFromPreferencesOrDb()
     }
 
-
-    private fun updateJavaScriptWaterCount() {
-        webView.evaluateJavascript("javascript:setWaterCount($waterDroplets);", null)
-    }
-
-    private fun loadGardenStateToJavaScript() {
-        val jsonArray = JSONArray()
-        gardenPlants.forEach { plantData ->
-            val jsonObject = JSONObject()
-            jsonObject.put("uuid", plantData.uuid)
-            jsonObject.put("x", plantData.x)
-            jsonObject.put("z", plantData.z)
-            jsonObject.put("color", plantData.color)
-            jsonObject.put("width", plantData.width)
-            jsonObject.put("height", plantData.height)
-            jsonObject.put("scaleX", plantData.scaleX)
-            jsonObject.put("scaleY", plantData.scaleY)
-            jsonObject.put("scaleZ", plantData.scaleZ)
-            jsonObject.put("growthStage", plantData.growthStage)
-            jsonObject.put("waterLevel", plantData.waterLevel)
-            jsonArray.put(jsonObject)
+    private fun updateJavaScriptWaterCount(count: Int) {
+        if (::webView.isInitialized) {
+            webView.evaluateJavascript("javascript:setWaterCount($count);", null)
         }
-        val gardenData = JSONObject().apply { put("plants", jsonArray) }.toString()
-        Log.d(TAG, "JavaScript'e gönderilen bahçe durumu: $gardenData")
-        // JSON string'ini JavaScript'e güvenli bir şekilde göndermek için escape etmek gerekebilir.
-        // Şimdilik direkt gönderiyoruz.
-        webView.evaluateJavascript("javascript:loadGardenState('$gardenData');", null)
     }
 
+    private fun loadGardenStateToJavaScript(state: GardenState) {
+        if (!::webView.isInitialized) {
+            Log.w(TAG, "loadGardenStateToJavaScript: WebView henüz başlatılmadı.")
+            return
+        }
+        try {
+            val jsonState = gson.toJson(state)
+            Log.d(TAG, "JavaScript'e gönderilen bahçe durumu (ilk 200 karakter): ${jsonState.take(200)}")
+            val escapedJsonState = jsonState.replace("\\", "\\\\").replace("'", "\\'")
+            webView.evaluateJavascript("javascript:loadGardenState('$escapedJsonState');", null)
+        } catch (e: Exception) {
+            Log.e(TAG, "loadGardenStateToJavaScript sırasında hata: ${e.message}", e)
+        }
+    }
 
-    // JavaScript'ten Android'e çağrılacak metodlar için arayüz
+    private fun saveCurrentGardenState() {
+        if (!isAdded || context == null || !::currentGardenState.isInitialized) {
+            Log.w(TAG, "saveCurrentGardenState: Fragment context'e bağlı değil veya state başlatılmamış, kaydetme atlandı.")
+            return
+        }
+        try {
+            val jsonString = gson.toJson(currentGardenState)
+            val file = File(requireContext().filesDir, GARDEN_STATE_FILENAME)
+            FileWriter(file).use { it.write(jsonString) }
+            Log.i(TAG, "Bahçe durumu kaydedildi: $GARDEN_STATE_FILENAME.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Bahçe durumu kaydedilirken hata: ${e.message}", e)
+        }
+    }
+
+    private fun loadInitialGardenState(): GardenState {
+        if (!isAdded) {
+            Log.w(TAG, "loadInitialGardenState: Fragment henüz eklenmemiş, varsayılan durum oluşturuluyor.")
+            return GardenState(
+                waterDroplets = 50, // Başlangıç suyu
+                objects = mutableListOf(
+                    GardenObjectData(type = GardenObjectType.GROUND, x = 0f, y = -0.5f, z = 0f, colorHex = UserColorsJs.light_green)
+                )
+            )
+        }
+        val file = File(requireContext().filesDir, GARDEN_STATE_FILENAME)
+        if (file.exists() && file.length() > 0) {
+            try {
+                FileReader(file).use {
+                    val state = gson.fromJson(it, GardenState::class.java)
+                    if (state != null) {
+                        Log.i(TAG, "Kaydedilmiş bahçe durumu yüklendi. Su: ${state.waterDroplets}, Obje Sayısı: ${state.objects.size}")
+                        return state
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Kaydedilmiş bahçe durumu yüklenirken hata: ${e.message}", e)
+            }
+        }
+        Log.i(TAG, "Kaydedilmiş bahçe durumu bulunamadı veya boş, varsayılan oluşturuluyor.")
+        return GardenState(
+            waterDroplets = 500, // Başlangıç suyu
+            objects = mutableListOf(
+                // Başlangıçta bir zemin bloğu ekle
+                GardenObjectData(type = GardenObjectType.GROUND, x = 0f, y = -0.5f, z = 0f, colorHex = UserColorsJs.light_green)
+            )
+        )
+    }
+
     inner class WebAppInterface {
         @JavascriptInterface
         fun log(message: String) {
@@ -151,59 +188,128 @@ class GardenFragment : Fragment() {
 
         @JavascriptInterface
         fun showToast(message: String) {
-            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-        }
-
-        @JavascriptInterface
-        fun canPlantNewSapling(): Boolean {
-            val canPlant = waterDroplets >= 10 // Örnek: Yeni fidan için 10 damla su gerekiyor
-            if (!canPlant) {
-                Log.d(TAG, "Yeni fidan dikilemez, yetersiz su: $waterDroplets")
-            }
-            return canPlant
-        }
-
-        @JavascriptInterface
-        fun onSaplingPlanted(uuid: String, x: Float, z: Float) {
-            // Yeni fidan dikildiğinde çağrılır
             activity?.runOnUiThread {
-                if (waterDroplets >= 10) {
-                    waterDroplets -= 10
-                    binding.textViewWaterDropletsCount.text = "$waterDroplets Damla Toplandı"
-                    updateJavaScriptWaterCount()
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+        }
 
-                    val newPlant = PlantData(uuid = uuid, x = x, z = z) // Diğer özellikler varsayılan
-                    gardenPlants.add(newPlant)
-                    Log.i(TAG, "Yeni fidan Android tarafına eklendi: $uuid, Su: $waterDroplets")
-                    // saveGardenStateToPreferencesOrDb() // Bahçe durumunu kaydet
+        @JavascriptInterface
+        fun canPlaceObject(typeString: String, x: Float, y: Float, z: Float): Boolean {
+            if (!::currentGardenState.isInitialized) return false
+            val objectType = GardenObjectType.valueOf(typeString.uppercase(Locale.ROOT))
+            val cost = when (objectType) {
+                GardenObjectType.GROUND -> 5
+                GardenObjectType.PLANT -> 10
+                GardenObjectType.WALL -> 3
+                GardenObjectType.FENCE -> 2
+                GardenObjectType.FLOWER_RED, GardenObjectType.FLOWER_YELLOW -> 1
+                else -> 0
+            }
+            val canPlace = currentGardenState.waterDroplets >= cost
+            if (!canPlace) Log.d(TAG, "$objectType yerleştirilemez, yetersiz su: ${currentGardenState.waterDroplets}, Gerekli: $cost")
+            return canPlace
+        }
+
+        @JavascriptInterface
+        fun onObjectPlaced(typeString: String, uuid: String, x: Float, y: Float, z: Float) {
+            if (!::currentGardenState.isInitialized) return
+            activity?.runOnUiThread {
+                val objectType = GardenObjectType.valueOf(typeString.uppercase(Locale.ROOT))
+                val cost = when (objectType) {
+                    GardenObjectType.GROUND -> 5
+                    GardenObjectType.PLANT -> 10
+                    GardenObjectType.WALL -> 3
+                    GardenObjectType.FENCE -> 2
+                    GardenObjectType.FLOWER_RED, GardenObjectType.FLOWER_YELLOW -> 1
+                    else -> 0
+                }
+
+                if (currentGardenState.waterDroplets >= cost) {
+                    currentGardenState.waterDroplets -= cost
+                    updateWaterDropletsUI()
+                    updateJavaScriptWaterCount(currentGardenState.waterDroplets)
+
+                    val newObjectData = GardenObjectData(uuid = uuid, type = objectType, x = x, y = y, z = z)
+                    if (objectType == GardenObjectType.GROUND) {
+                        newObjectData.colorHex = UserColorsJs.light_green // Varsayılan zemin rengi
+                    } else if (objectType == GardenObjectType.PLANT) {
+                        newObjectData.growthStage = 0
+                        newObjectData.waterLevel = 0
+                        // Altındaki zemin bloğunun rengini de güncelle (dirt_brown)
+                        val groundBlock = currentGardenState.objects.find {
+                            it.type == GardenObjectType.GROUND && it.x == x && it.z == z
+                        }
+                        groundBlock?.colorHex = UserColorsJs.dirt_brown
+                    }
+                    currentGardenState.objects.add(newObjectData)
+                    Log.i(TAG, "Yeni obje Android tarafına eklendi: $objectType - $uuid, Su: ${currentGardenState.waterDroplets}")
+                    saveCurrentGardenState()
                 }
             }
         }
 
         @JavascriptInterface
-        fun onPlantWatered(uuid: String) {
-            // Bitki sulandığında çağrılır
+        fun onGroundColorChanged(x: Int, z: Int, newColorHex: Int) {
+            if (!::currentGardenState.isInitialized) return
             activity?.runOnUiThread {
-                val plant = gardenPlants.find { it.uuid == uuid }
-                if (plant != null) {
-                    plant.waterLevel += 1
-                    // Büyüme mantığını burada da güncelleyebilir veya sadece JavaScript'te bırakabilirsiniz.
-                    // Örnek: plant.scaleY *= 1.1f (eğer Android'de de takip ediyorsanız)
-                    Log.i(TAG, "Bitki sulandı (Android): $uuid, Su Seviyesi: ${plant.waterLevel}")
-                    // saveGardenStateToPreferencesOrDb() // Bahçe durumunu kaydet
+                val groundBlock = currentGardenState.objects.find {
+                    it.type == GardenObjectType.GROUND && it.x.toInt() == x && it.z.toInt() == z
+                }
+                if (groundBlock != null) {
+                    groundBlock.colorHex = newColorHex
+                    Log.i(TAG, "Zemin ($x,$z) rengi güncellendi: $newColorHex")
+                    saveCurrentGardenState()
+                } else {
+                    Log.w(TAG, "Renk değiştirmek için zemin bloğu bulunamadı: ($x,$z)")
                 }
             }
+        }
+
+
+        @JavascriptInterface
+        fun onObjectModified(typeString: String, uuid: String, newGrowthStage: Int, newWaterLevel: Int) {
+            if (!::currentGardenState.isInitialized) return
+            activity?.runOnUiThread {
+                val objectType = GardenObjectType.valueOf(typeString.uppercase(Locale.ROOT))
+                if (objectType == GardenObjectType.PLANT) {
+                    val plant = currentGardenState.objects.find { it.uuid == uuid && it.type == GardenObjectType.PLANT }
+                    if (plant != null) {
+                        plant.waterLevel = newWaterLevel
+                        plant.growthStage = newGrowthStage
+                        Log.i(TAG, "Bitki güncellendi (Android): $uuid, Yeni Aşama: ${plant.growthStage}, Su Seviyesi: ${plant.waterLevel}")
+                        saveCurrentGardenState()
+                    } else {
+                        Log.w(TAG, "Güncellenecek bitki bulunamadı (Android): $uuid")
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun updateObjectCount(count: Int) {
+            Log.d(TAG, "JavaScript'ten gelen obje sayısı (info): $count")
+            // İsterseniz bu bilgiyi UI'da başka bir yerde gösterebilirsiniz.
+            // binding.textViewInfoObjectCount.text = "Objeler: $count"
         }
     }
 
-    // TODO: Bahçe durumunu kaydetme ve yükleme fonksiyonları (SharedPreferences, Room DB vb.)
-    // private fun saveGardenStateToPreferencesOrDb() { ... }
-    // private fun loadGardenStateFromPreferencesOrDb() { ... }
-
+    override fun onPause() {
+        super.onPause()
+        if (::currentGardenState.isInitialized) {
+            saveCurrentGardenState()
+            Log.d(TAG, "onPause çağrıldı ve bahçe durumu kaydedildi.")
+        } else {
+            Log.w(TAG, "onPause: currentGardenState başlatılmamış, kaydetme atlandı.")
+        }
+    }
 
     override fun onDestroyView() {
-        binding.frameLayoutGarden3dView.removeView(webView) // WebView'ı kaldır
-        webView.destroy() // WebView kaynaklarını serbest bırak
+        if (::webView.isInitialized && webView.parent != null) {
+            (webView.parent as? ViewGroup)?.removeView(webView)
+        }
+        if (::webView.isInitialized) {
+            webView.destroy()
+        }
         _binding = null
         Log.d(TAG, "onDestroyView çağrıldı.")
         super.onDestroyView()

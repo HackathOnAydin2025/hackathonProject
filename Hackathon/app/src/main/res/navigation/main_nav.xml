@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_nav"
-    app:startDestination="@id/progressFragment2">
+    app:startDestination="@id/gardenFragment">
     <fragment
         android:id="@+id/progressFragment2"
         android:name="com.example.hackathon.ProgressFragment"
@@ -27,4 +27,9 @@
         android:name="com.example.hackathon.PomodoroFragment"
         android:label="fragment_pomodoro"
         tools:layout="@layout/fragment_pomodoro" />
+    <fragment
+        android:id="@+id/gardenFragment"
+        android:name="com.example.hackathon.GardenFragment"
+        android:label="fragment_garden"
+        tools:layout="@layout/fragment_garden" />
 </navigation>
