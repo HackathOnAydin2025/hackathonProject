@@ -3,33 +3,48 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_nav"
-    app:startDestination="@id/gardenFragment">
+    app:startDestination="@id/taskListFragment">
+
     <fragment
-        android:id="@+id/progressFragment2"
+        android:id="@+id/progressFragment"
         android:name="com.example.hackathon.ProgressFragment"
-        android:label="ProgressFragment" >
+        android:label="ProgressFragment"
+        tools:layout="@layout/fragment_progress">
         <action
-            android:id="@+id/progressToTaskList"
+            android:id="@+id/action_progressFragment_to_taskListFragment"
             app:destination="@id/taskListFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/taskListFragment"
         android:name="com.example.hackathon.TaskListFragment"
-        android:label="fragment_task_list">
+        android:label="TaskListFragment"
+        tools:layout="@layout/fragment_task_list">
         <argument
             android:name="selected_date_string"
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
+        <action
+            android:id="@+id/action_taskListFragment_to_pomodoroFragment"
+            app:destination="@id/pomodoroFragment" />
+        <action
+            android:id="@+id/action_taskListFragment_to_progressFragment"
+            app:destination="@id/progressFragment"
+            app:popUpTo="@id/progressFragment"
+            app:popUpToInclusive="true"/> <action
+        android:id="@+id/action_taskListFragment_to_gardenFragment"
+        app:destination="@id/gardenFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/pomodoroFragment"
         android:name="com.example.hackathon.PomodoroFragment"
-        android:label="fragment_pomodoro"
+        android:label="PomodoroFragment"
         tools:layout="@layout/fragment_pomodoro" />
     <fragment
         android:id="@+id/gardenFragment"
         android:name="com.example.hackathon.GardenFragment"
-        android:label="fragment_garden"
+        android:label="GardenFragment"
         tools:layout="@layout/fragment_garden" />
 </navigation>
