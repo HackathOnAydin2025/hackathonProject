@@ -1,72 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
-    tools:context=".PomodoroFragment"> <com.google.android.material.progressindicator.CircularProgressIndicator
-    android:id="@+id/progressCircular"
-    android:layout_width="220dp"
-    android:layout_height="220dp"
-    android:layout_marginTop="48dp"
-    app:indicatorSize="220dp"
-    app:trackThickness="14dp"
-    app:trackColor="@color/user_beige"
-    app:indicatorColor="@color/user_orange"
-    app:indicatorDirectionCircular="clockwise"
-    app:layout_constraintTop_toTopOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/textTimer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="25:00"
-        android:textSize="36sp"
-        android:textColor="@color/black"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="@id/progressCircular"
-        app:layout_constraintBottom_toBottomOf="@id/progressCircular"
-        app:layout_constraintStart_toStartOf="@id/progressCircular"
-        app:layout_constraintEnd_toEndOf="@id/progressCircular" />
-
-    <ImageButton
-        android:id="@+id/buttonStartPause"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@android:drawable/ic_media_play"
-        android:scaleType="centerInside"
-        app:tint="@color/white" app:layout_constraintTop_toBottomOf="@id/progressCircular"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp"/>
-
-    <TextView
-        android:id="@+id/textTask"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Haydi Süreci Başlat!"
-        android:textSize="16sp"
-        android:textColor="@color/user_dark_green"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/buttonStartPause"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+    tools:context="PomodoroFragment"> <androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <com.airbnb.lottie.LottieAnimationView
-        android:id="@+id/celebrationAnimation"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:visibility="gone"
-        app:lottie_rawRes="@raw/confetti" app:lottie_autoPlay="false"
-        app:lottie_loop="false"
+        android:id="@+id/background_butterfly_animation"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textTask"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"/> </androidx.constraintlayout.widget.ConstraintLayout>
+        app:lottie_rawRes="@raw/kelebek_animasyonu" app:lottie_autoPlay="true"
+        app:lottie_loop="true"
+        android:scaleType="centerInside"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/header_section_pomodoro"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="?attr/colorPrimary"
+        android:paddingStart="20dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/icon_grid_menu_pomodoro"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginTop="8dp"
+            android:contentDescription="Menü"
+            android:padding="2dp"
+            android:src="@drawable/ic_grid_view"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorOnPrimary" />
+
+        <TextView
+            android:id="@+id/textView_header_title_pomodoro"
+            style="@style/TextAppearance.App.HeaderDateCentered"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pomodoro"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toBottomOf="@id/icon_grid_menu_pomodoro"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/icon_grid_menu_pomodoro" />
+
+        <ImageView
+            android:id="@+id/icon_settings_pomodoro"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="Ayarlar"
+            android:padding="2dp"
+            android:src="@drawable/ic_history_clock"
+            app:layout_constraintBottom_toBottomOf="@id/icon_grid_menu_pomodoro"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/icon_grid_menu_pomodoro"
+            app:tint="?attr/colorOnPrimary" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/pomodoro_content_section"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@id/header_section_pomodoro"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/progressCircular"
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            app:indicatorSize="250dp"
+            app:trackThickness="16dp"
+            app:trackColor="?attr/colorSurfaceVariant"
+            app:indicatorColor="?attr/colorPrimary"
+            app:indicatorDirectionCircular="clockwise"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/textTimer"
+            app:layout_constraintVertical_bias="0.1"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:layout_marginTop="24dp"/>
+
+        <TextView
+            android:id="@+id/textTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="25:00"
+            android:textSize="48sp"
+            android:textColor="?attr/colorOnBackground"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="@id/progressCircular"
+            app:layout_constraintBottom_toBottomOf="@id/progressCircular"
+            app:layout_constraintStart_toStartOf="@id/progressCircular"
+            app:layout_constraintEnd_toEndOf="@id/progressCircular" />
+
+        <TextView
+            android:id="@+id/textTask"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Haydi Süreci Başlat!"
+            android:textSize="18sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:layout_constraintTop_toBottomOf="@id/progressCircular"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="24dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonStartPause"
+            style="@style/Widget.Material3.Button.IconButton.Filled"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:icon="@drawable/baseline_start_24"
+            app:iconSize="40dp"
+            app:iconTint="?attr/colorOnPrimary"
+            android:backgroundTint="?attr/colorPrimary"
+            app:layout_constraintTop_toBottomOf="@id/textTask"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/celebrationAnimation"
+            android:layout_marginTop="32dp"
+            android:contentDescription="Başlat veya Duraklat"/>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/celebrationAnimation"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:lottie_rawRes="@raw/confetti"
+            app:lottie_autoPlay="false"
+            app:lottie_loop="false"
+            app:layout_constraintTop_toBottomOf="@id/buttonStartPause"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

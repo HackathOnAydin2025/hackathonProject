@@ -1,4 +1,4 @@
-package com.example.hackathon // Kendi paket adınızı kullanın
+package com.example.hackathon // Ana paket adınız
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -11,10 +11,12 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.hackathon.data.Task
+import com.example.hackathon.data.Task // Task importu gerekli
 import com.example.hackathon.databinding.FragmentPomodoroBinding
 import com.example.hackathon.tasks.TaskViewModel
+import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
 
 class PomodoroFragment : Fragment() {
 
@@ -26,22 +28,19 @@ class PomodoroFragment : Fragment() {
 
     private val taskViewModel: TaskViewModel by activityViewModels()
 
-    // Bu, o anki Pomodoro SEANSININ başlangıç süresini tutar.
-    // Görevin toplam süresi değil, bir Pomodoro seansının süresi olmalı.
-    // Şimdilik, seçilen görevin durationMinutes'ını seans süresi olarak alıyoruz.
-    private var currentSessionTimeInMillis: Long = TimeUnit.MINUTES.toMillis(DEFAULT_POMODORO_SESSION_MINUTES.toLong())
-    private var timeLeftInMillis: Long = currentSessionTimeInMillis
+    private var currentPomodoroSessionDurationMillis: Long = TimeUnit.MINUTES.toMillis(DEFAULT_POMODORO_SESSION_MINUTES.toLong())
+    private var timeLeftInCurrentSessionMillis: Long = currentPomodoroSessionDurationMillis
 
     private var colorOrange: Int = 0
     private var colorRed: Int = 0
 
-    // Şu an üzerinde çalışılan görevin ID'si
     private var currentTaskIdForPomodoro: Int? = null
+    private var currentTaskTitleForPomodoro: String? = "Odaklanma Zamanı!"
 
     companion object {
-        // Bir Pomodoro seansının varsayılan süresi (örn: 25 dakika)
         const val DEFAULT_POMODORO_SESSION_MINUTES = 25
         private const val ONE_MINUTE_IN_MILLIS = 60000L
+        private const val TAG = "PomodoroFragment" // Loglama için TAG
     }
 
     override fun onCreateView(
@@ -55,15 +54,18 @@ class PomodoroFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        colorOrange = ContextCompat.getColor(requireContext(), R.color.user_orange) // Renklerinizi tanımlayın
-        colorRed = ContextCompat.getColor(requireContext(), R.color.md_theme_onErrorContainer) // Renklerinizi tanımlayın
+        colorOrange = ContextCompat.getColor(requireContext(), R.color.user_orange)
+        colorRed = ContextCompat.getColor(requireContext(), R.color.md_theme_onErrorContainer)
 
         setupClickListeners()
         setupObservers()
 
-        if (taskViewModel.selectedTaskForPomodoro.value == null) {
+        taskViewModel.selectedTaskForPomodoro.value?.let { task ->
+            updateUIForTask(task)
+            restoreOrConfigureTimerForTask(task)
+        } ?: run {
             updateUIForTask(null)
-            resetTimerUIAndState()
+            resetTimerToDefaultSession()
         }
     }
 
@@ -72,12 +74,16 @@ class PomodoroFragment : Fragment() {
             if (isRunning) {
                 pauseTimer()
             } else {
-                if (timeLeftInMillis == 0L) { // Timer bittiyse veya hiç başlamadıysa
-                    timeLeftInMillis = currentSessionTimeInMillis // Süreyi baştan ayarla
-                    updateProgress()
-                    updateTimerText()
-                    binding.progressCircular.setIndicatorColor(colorOrange)
+                if (timeLeftInCurrentSessionMillis <= 0L && currentTaskIdForPomodoro != null) {
+                    taskViewModel.selectedTaskForPomodoro.value?.let { task ->
+                        configureTimerForTask(task)
+                    }
+                } else if (timeLeftInCurrentSessionMillis <= 0L && currentTaskIdForPomodoro == null) {
+                    resetTimerToDefaultSession()
                 }
+                updateTimerText()
+                updateProgress()
+                binding.progressCircular.setIndicatorColor(colorOrange)
                 startTimer()
             }
         }
@@ -85,139 +91,198 @@ class PomodoroFragment : Fragment() {
 
     private fun setupObservers() {
         taskViewModel.selectedTaskForPomodoro.observe(viewLifecycleOwner) { task ->
-            Log.d("PomodoroFragment", "Selected task changed: ${task?.title}")
+            Log.d(TAG, "Gözlemlenen seçili görev: ${task?.title}, Duraklatılmış ID: ${taskViewModel.pausedPomodoroTaskId}")
             updateUIForTask(task)
-            resetTimerUIAndState() // Timer'ı yeni göreve (veya varsayılana) göre resetle
+            if (task != null) {
+                restoreOrConfigureTimerForTask(task)
+            } else {
+                resetTimerToDefaultSession()
+            }
         }
     }
 
     private fun updateUIForTask(task: Task?) {
-        currentTaskIdForPomodoro = task?.id // Çalışılan görevin ID'sini sakla
-        if (task != null) {
-            binding.textTask.text = task.title
-            // Pomodoro seans süresini görevin süresinden alıyoruz.
-            // Eğer standart Pomodoro (örn: 25dk) kullanmak isterseniz, burayı değiştirin.
-            currentSessionTimeInMillis = TimeUnit.MINUTES.toMillis(task.durationMinutes.toLong())
-            Log.d("PomodoroFragment", "UI updated for task '${task.title}', session duration: ${task.durationMinutes}min")
-        } else {
-            binding.textTask.text = "Odaklanma Zamanı!"
-            currentSessionTimeInMillis = TimeUnit.MINUTES.toMillis(DEFAULT_POMODORO_SESSION_MINUTES.toLong())
-            Log.d("PomodoroFragment", "UI updated for default, session duration: $DEFAULT_POMODORO_SESSION_MINUTES min")
-        }
+        currentTaskIdForPomodoro = task?.id
+        currentTaskTitleForPomodoro = task?.title ?: "Odaklanma Zamanı!"
+        binding.textTask.text = currentTaskTitleForPomodoro
+        Log.d(TAG, "UI güncellendi: Görev='${currentTaskTitleForPomodoro}', ID=$currentTaskIdForPomodoro")
     }
 
-    private fun resetTimerUIAndState() {
+    private fun restoreOrConfigureTimerForTask(task: Task) {
         countDownTimer?.cancel()
         isRunning = false
-        timeLeftInMillis = currentSessionTimeInMillis // Ayarlanan seans süresini kullan
+
+        if (task.id == taskViewModel.pausedPomodoroTaskId &&
+            taskViewModel.pausedPomodoroTimeLeftMillis != null &&
+            taskViewModel.pausedPomodoroSessionDurationMillis != null) {
+            Log.d(TAG, "Duraklatılmış Pomodoro durumu geri yükleniyor: TaskID=${task.id}")
+            timeLeftInCurrentSessionMillis = taskViewModel.pausedPomodoroTimeLeftMillis!!
+            currentPomodoroSessionDurationMillis = taskViewModel.pausedPomodoroSessionDurationMillis!!
+            binding.buttonStartPause.isEnabled = true
+        } else {
+            Log.d(TAG, "Yeni Pomodoro seansı yapılandırılıyor: TaskID=${task.id}")
+            configureTimerForTask(task)
+        }
+
         updateTimerText()
-        binding.progressCircular.max = 100 // Progress bar 0-100 arası yüzdeyi gösterir
-        updateProgress() // Progress bar'ı tam yap
-
-        binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_play)
-        // Buton arkaplanını drawable ile ayarlamak daha esnek olabilir.
-        // binding.buttonStartPause.setBackgroundResource(R.drawable.rounded_button_orange)
-
+        updateProgress()
         binding.progressCircular.setIndicatorColor(colorOrange)
         binding.celebrationAnimation.visibility = View.GONE
         binding.celebrationAnimation.cancelAnimation()
-        binding.buttonStartPause.isEnabled = true
-        Log.d("PomodoroFragment", "Timer UI and state reset. Session duration set to: ${timeLeftInMillis / 1000 / 60}min")
+        binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_play)
     }
 
+    private fun configureTimerForTask(task: Task) {
+        val totalPlannedMinutes = task.durationMinutes
+        val alreadyFocusedMinutes = task.actualFocusedMinutes
+        var remainingMinutesForTask = totalPlannedMinutes - alreadyFocusedMinutes
 
-    private fun startTimer() {
-        if (isRunning || (timeLeftInMillis == 0L && currentSessionTimeInMillis == 0L) ) return
-
-        if (timeLeftInMillis == 0L) { // Eğer süre bittiyse ve yeniden başlatılıyorsa
-            timeLeftInMillis = currentSessionTimeInMillis
-            updateTimerText()
-            updateProgress() // Progress'i 100 yap
+        if (remainingMinutesForTask <= 0 && totalPlannedMinutes > 0) {
+            Log.i(TAG, "'${task.title}' görevi için planlanan süre zaten tamamlanmış veya aşılmış.")
+            remainingMinutesForTask = DEFAULT_POMODORO_SESSION_MINUTES
+        } else if (remainingMinutesForTask <= 0 && totalPlannedMinutes == 0) { // Plansız görev ve hiç odaklanılmamışsa veya bitmişse
+            remainingMinutesForTask = DEFAULT_POMODORO_SESSION_MINUTES
         }
 
-        countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
+        val sessionMinutesToSet = min(DEFAULT_POMODORO_SESSION_MINUTES, remainingMinutesForTask.coerceAtLeast(1))
+        currentPomodoroSessionDurationMillis = TimeUnit.MINUTES.toMillis(sessionMinutesToSet.toLong())
+        timeLeftInCurrentSessionMillis = currentPomodoroSessionDurationMillis
+        binding.buttonStartPause.isEnabled = true
+        Log.d(TAG, "Yeni Pomodoro seansı ayarlandı: ${task.title} için $sessionMinutesToSet dk (Toplam Kalan: $remainingMinutesForTask dk)")
+    }
+
+    private fun resetTimerToDefaultSession() {
+        countDownTimer?.cancel()
+        isRunning = false
+        currentTaskIdForPomodoro = null
+        currentTaskTitleForPomodoro = "Odaklanma Zamanı!"
+        binding.textTask.text = currentTaskTitleForPomodoro
+
+        currentPomodoroSessionDurationMillis = TimeUnit.MINUTES.toMillis(DEFAULT_POMODORO_SESSION_MINUTES.toLong())
+        timeLeftInCurrentSessionMillis = currentPomodoroSessionDurationMillis
+        updateTimerText()
+        updateProgress()
+        binding.progressCircular.setIndicatorColor(colorOrange)
+        binding.celebrationAnimation.visibility = View.GONE
+        binding.celebrationAnimation.cancelAnimation()
+        binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_play)
+        binding.buttonStartPause.isEnabled = true
+        taskViewModel.clearPausedPomodoroState()
+        Log.d(TAG, "Zamanlayıcı varsayılan seansa sıfırlandı: $DEFAULT_POMODORO_SESSION_MINUTES dk")
+    }
+
+    private fun startTimer() {
+        if (isRunning || timeLeftInCurrentSessionMillis <= 0) {
+            Log.d(TAG, "Zamanlayıcı zaten çalışıyor veya süre dolmuş, başlatılmadı. Kalan Süre: $timeLeftInCurrentSessionMillis, Görev ID: $currentTaskIdForPomodoro")
+            // Eğer süre bittiyse ve bir görev hala seçiliyse, göreve göre yeni bir seans için configure et
+            if (timeLeftInCurrentSessionMillis <= 0 && currentTaskIdForPomodoro != null) {
+                taskViewModel.selectedTaskForPomodoro.value?.let {
+                    Log.d(TAG, "Süre bitti, görev için zamanlayıcı yeniden yapılandırılıyor: ${it.title}")
+                    configureTimerForTask(it)
+                }
+                // configureTimerForTask süreyi ayarladıktan sonra hala 0 ise (örn. görev tamamen bittiyse) başlatma.
+                if (timeLeftInCurrentSessionMillis <= 0) {
+                    Log.d(TAG, "Yapılandırma sonrası hala süre yok, zamanlayıcı başlatılmıyor.")
+                    binding.buttonStartPause.isEnabled = false // Butonu devre dışı bırakabiliriz
+                    return
+                }
+            } else if (timeLeftInCurrentSessionMillis <= 0) { // Görev yok ve süre yok
+                Log.d(TAG, "Görev yok ve süre yok, zamanlayıcı başlatılmıyor.")
+                return
+            }
+        }
+
+        taskViewModel.clearPausedPomodoroState() // Zamanlayıcı başladığında duraklatılmış durumu temizle
+
+        countDownTimer = object : CountDownTimer(timeLeftInCurrentSessionMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                timeLeftInMillis = millisUntilFinished
+                timeLeftInCurrentSessionMillis = millisUntilFinished
                 updateTimerText()
                 updateProgress()
-
                 val currentIndicatorColors = binding.progressCircular.indicatorColor
                 val currentColor = if (currentIndicatorColors.isNotEmpty()) currentIndicatorColors[0] else colorOrange
-
-                if (millisUntilFinished <= ONE_MINUTE_IN_MILLIS) {
-                    if (currentColor != colorRed) binding.progressCircular.setIndicatorColor(colorRed)
-                } else {
-                    if (currentColor != colorOrange) binding.progressCircular.setIndicatorColor(colorOrange)
+                if (millisUntilFinished <= ONE_MINUTE_IN_MILLIS && currentColor != colorRed) {
+                    binding.progressCircular.setIndicatorColor(colorRed)
+                } else if (millisUntilFinished > ONE_MINUTE_IN_MILLIS && currentColor != colorOrange) {
+                    binding.progressCircular.setIndicatorColor(colorOrange)
                 }
             }
 
             override fun onFinish() {
-                Log.d("PomodoroFragment", "Timer finished for task ID: $currentTaskIdForPomodoro")
+                Log.d(TAG, "Zamanlayıcı bitti. Görev ID: $currentTaskIdForPomodoro")
                 isRunning = false
-                timeLeftInMillis = 0L
+                // Bu seans için odaklanılan süre, seansın başlangıçtaki toplam süresidir.
+                val sessionMinutesFocused = TimeUnit.MILLISECONDS.toMinutes(currentPomodoroSessionDurationMillis).toInt()
+                timeLeftInCurrentSessionMillis = 0L
                 updateTimerText()
-                updateProgress() // Progress'i 0 yap
+                updateProgress()
 
                 binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_play)
-                binding.progressCircular.setIndicatorColor(colorOrange)
+                val taskTitle = currentTaskTitleForPomodoro ?: "Seans"
+                binding.textTask.text = "'$taskTitle' seansı tamamlandı!"
 
-                val taskTitle = taskViewModel.selectedTaskForPomodoro.value?.title ?: "Seans"
-                binding.textTask.text = "'$taskTitle' tamamlandı!"
+                // --- LOG EKLENDİ ---
+                Log.d(TAG, "onFinish: Kaydedilecek odak süresi: $sessionMinutesFocused dk, Görev ID: $currentTaskIdForPomodoro")
 
-                // YENİ: Fiilen odaklanılan süreyi kaydet
-                val sessionMinutes = TimeUnit.MILLISECONDS.toMinutes(currentSessionTimeInMillis).toInt()
                 currentTaskIdForPomodoro?.let { taskId ->
-                    if (sessionMinutes > 0) { // Sadece pozitif süreleri kaydet
-                        taskViewModel.recordFocusedSession(taskId, sessionMinutes)
+                    if (sessionMinutesFocused > 0) {
+                        taskViewModel.recordFocusedSession(taskId, sessionMinutesFocused)
+                    } else {
+                        Log.w(TAG, "onFinish: Odak süresi 0 olduğu için kayıt yapılmadı.")
                     }
                 }
 
-                // Animasyon ve seçili görevi temizleme
                 binding.celebrationAnimation.apply {
-                    visibility = View.VISIBLE
-                    playAnimation()
+                    visibility = View.VISIBLE; playAnimation()
                     addAnimatorListener(object : AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(animation: Animator) {
-                            visibility = View.GONE
-                        }
+                        override fun onAnimationEnd(animation: Animator) { visibility = View.GONE }
                     })
                 }
-                taskViewModel.clearSelectedTaskForPomodoro() // Seçili görevi temizle
-                currentTaskIdForPomodoro = null // Çalışılan ID'yi sıfırla
+                binding.buttonStartPause.isEnabled = true // Kullanıcı aynı göreve tekrar başlayabilsin
             }
         }.start()
 
         isRunning = true
         binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_pause)
-        Log.d("PomodoroFragment", "Timer started. Session duration: ${timeLeftInMillis / 1000 / 60}min")
+        Log.d(TAG, "Zamanlayıcı başlatıldı. Seans Süresi: ${currentPomodoroSessionDurationMillis / 1000 / 60} dk, Kalan: ${timeLeftInCurrentSessionMillis / 1000} sn")
     }
 
     private fun pauseTimer() {
         countDownTimer?.cancel()
         isRunning = false
         binding.buttonStartPause.setImageResource(android.R.drawable.ic_media_play)
-        Log.d("PomodoroFragment", "Timer paused.")
+        Log.d(TAG, "Zamanlayıcı duraklatıldı. Kalan süre: $timeLeftInCurrentSessionMillis ms")
+
+        currentTaskIdForPomodoro?.let { taskId ->
+            taskViewModel.storePausedPomodoroState(taskId, timeLeftInCurrentSessionMillis, currentPomodoroSessionDurationMillis)
+        }
     }
 
     private fun updateTimerText() {
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis)
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(minutes)
-        binding.textTimer.text = String.format("%02d:%02d", minutes, seconds)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInCurrentSessionMillis)
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInCurrentSessionMillis) - TimeUnit.MINUTES.toSeconds(minutes)
+        binding.textTimer.text = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 
     private fun updateProgress() {
-        val progress = if (currentSessionTimeInMillis > 0) {
-            (timeLeftInMillis * 100 / currentSessionTimeInMillis).toInt()
-        } else {
-            if (timeLeftInMillis > 0) 100 else 0 // Eğer başlangıç süresi 0 ama kalan süre varsa %100
+        val progress = if (currentPomodoroSessionDurationMillis > 0) {
+            (timeLeftInCurrentSessionMillis * 100 / currentPomodoroSessionDurationMillis).toInt()
+        } else { 0 }
+        binding.progressCircular.progress = progress.coerceIn(0,100)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isRunning) {
+            pauseTimer()
+            Log.d(TAG, "Fragment onPause: Çalışan zamanlayıcı duraklatıldı ve durumu kaydedildi.")
         }
-        binding.progressCircular.progress = progress
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         countDownTimer?.cancel()
         _binding = null
-        Log.d("PomodoroFragment", "onDestroyView called.")
+        Log.d(TAG, "onDestroyView çağrıldı.")
     }
 }

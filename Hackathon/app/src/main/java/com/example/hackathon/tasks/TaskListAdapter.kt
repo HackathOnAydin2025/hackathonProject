@@ -1,30 +1,34 @@
 package com.example.hackathon.tasks // Kendi paket adınızı kullanın
 
 import android.graphics.Paint
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.navigation.findNavController // Navigasyon için
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.hackathon.R
 import com.example.hackathon.data.Task
-import com.example.hackathon.databinding.ItemTaskBinding // Eğer item_task.xml dosyanızın adı buysa. Değilse, doğru binding sınıfını import edin.
+import com.example.hackathon.databinding.ItemTaskBinding
+import com.example.hackathon.TaskListFragmentDirections // Oluşturulan Directions sınıfı
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TaskListAdapter(
-    private val onStartPomodoroClicked: (Task) -> Unit,
+    // onStartPomodoroClicked artık doğrudan navigasyon yapacak, TaskViewModel'i Fragment'tan alacak.
+    // Bu yüzden lambda imzası sadece Task alabilir veya Fragment'ın kendisini alabilir.
+    // Şimdilik, tıklanan görevi döndüren bir lambda bırakıyoruz, navigasyonu Fragment halledecek.
+    private val onTaskItemClicked: (Task) -> Unit,
     private val onTaskCheckedChange: (Task, Boolean) -> Unit,
-    private val onDeleteClicked: (Task) -> Unit, // ItemTouchHelper için olmasa da, item içindeki buton için
-    private val onEditTaskClicked: ((Task) -> Unit)? // Opsiyonel düzenleme
+    private val onDeleteClicked: (Task) -> Unit,
+    private val onEditTaskClicked: ((Task) -> Unit)?
 ) : ListAdapter<Task, TaskListAdapter.TaskViewHolder>(TaskDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
-        // XML dosyanızın adı "item_task.xml" ise ItemTaskBinding doğrudur.
-        // Eğer "item_task_xml_final_design.xml" ise, ItemTaskXmlFinalDesignBinding olmalıdır.
         val binding = ItemTaskBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return TaskViewHolder(binding)
     }
@@ -34,93 +38,79 @@ class TaskListAdapter(
         holder.bind(currentTask)
     }
 
-    inner class TaskViewHolder(private val binding: ItemTaskBinding) : // Binding sınıf adını kontrol edin
+    inner class TaskViewHolder(private val binding: ItemTaskBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         init {
-            // Tüm karta tıklandığında (Pomodoro başlat veya detayları göster gibi)
             binding.root.setOnClickListener {
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    onStartPomodoroClicked(getItem(position)) // Veya onTaskClicked gibi genel bir isim
+                    onTaskItemClicked(getItem(position)) // Fragment bu tıklamayı alıp ViewModel'i güncelleyecek ve navigasyon yapacak
                 }
             }
 
             binding.checkboxTaskCompleted.setOnCheckedChangeListener { _, isChecked ->
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    onTaskCheckedChange(getItem(position), isChecked)
+                    // CheckBox durumu değiştiğinde, görevin isCompleted durumunu güncelleyip callback'i çağır.
+                    // ViewModel'i doğrudan burada güncellemek yerine, değişikliği Fragment'a bildiriyoruz.
+                    val task = getItem(position)
+                    // task.isCompleted = isChecked // Bu satır burada olmamalı, state yönetimi ViewModel'de
+                    onTaskCheckedChange(task, isChecked)
                 }
             }
 
-            // item_task.xml'de button_delete_task ID'li bir ImageButton varsa bu çalışır.
-            // Önceki item_task.xml'de bu buton 'gone' durumundaydı.
-            // Eğer görünür yaparsanız veya her zaman listener eklemek isterseniz:
-            binding.buttonDeleteTask.setOnClickListener { // XML'de bu ID'li bir view olmalı
+            binding.buttonDeleteTask.setOnClickListener {
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onDeleteClicked(getItem(position))
                 }
             }
 
-            // Opsiyonel: Eğer item_task.xml'de bir "düzenle" butonu/ikonu varsa
-            // ve onEditTaskClicked null değilse:
-            // Örneğin, binding.buttonEditTask.setOnClickListener { ... onEditTaskClicked?.invoke(...) ... }
+            // Edit butonu için (eğer varsa)
+            // binding.buttonEditTask.setOnClickListener { ... }
         }
 
         fun bind(task: Task) {
             binding.textViewTaskTitle.text = task.title
-            binding.checkboxTaskCompleted.isChecked = task.isCompleted
+            binding.checkboxTaskCompleted.isChecked = task.isCompleted // CheckBox'ı görevin durumuna göre ayarla
             updateTaskTitleAppearance(binding.textViewTaskTitle, task.isCompleted)
 
-            // Görev Saati (item_task.xml'deki textView_task_time_range)
             if (task.startTime != null) {
                 val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
                 val startTimeFormatted = sdfTime.format(Date(task.startTime))
-
-                // Bitiş saatini hesapla (opsiyonel, tasarıma göre)
                 val endTimeCalendar = Calendar.getInstance().apply {
                     timeInMillis = task.startTime
                     add(Calendar.MINUTE, task.durationMinutes)
                 }
                 val endTimeFormatted = sdfTime.format(endTimeCalendar.time)
-
-                // Tasarımdaki gibi alt alta göstermek için:
                 binding.textViewTaskTimeRange.text = "$startTimeFormatted\n$endTimeFormatted"
-                // Veya sadece başlangıç:
-                // binding.textViewTaskTimeRange.text = startTimeFormatted
                 binding.textViewTaskTimeRange.visibility = View.VISIBLE
             } else {
-                // Başlangıç saati yoksa, belki sadece süreyi göster veya alanı gizle
-                binding.textViewTaskTimeRange.text = "${task.durationMinutes} dk" // Alternatif
-                // binding.textViewTaskTimeRange.visibility = View.GONE
+                binding.textViewTaskTimeRange.text = "${task.durationMinutes} dk"
+                // binding.textViewTaskTimeRange.visibility = View.GONE // Veya süreyi göster
             }
+            // Kalan süreyi göstermek için (opsiyonel)
+            val remainingMinutes = task.durationMinutes - task.actualFocusedMinutes
+            val focusedInfo = if (task.actualFocusedMinutes > 0) " (${task.actualFocusedMinutes} dk odaklanıldı)" else ""
+            binding.textViewTaskDescription.text = "Kalan süre: $remainingMinutes dk / Toplam: ${task.durationMinutes} dk$focusedInfo"
 
-            // Görev Açıklaması (item_task.xml'deki textView_task_description)
-            // Task entity'nizde bir 'description' alanı varsa onu kullanın.
-            // Yoksa, bu alanı farklı bir bilgi için kullanabilir veya gizleyebilirsiniz.
-            // Örneğin, eğer Task'ta description alanı yoksa:
-            binding.textViewTaskDescription.text = "Tahmini süre: ${task.durationMinutes} dakika" // Örnek
-            // Eğer Task'ta description alanı varsa:
-            // if (task.description.isNullOrEmpty()) {
-            //    binding.textViewTaskDescription.visibility = View.GONE
-            // } else {
-            //    binding.textViewTaskDescription.text = task.description
-            //    binding.textViewTaskDescription.visibility = View.VISIBLE
-            // }
-
-            // Silme butonunun görünürlüğü (eğer XML'de varsa ve dinamik olarak yönetilecekse)
-            // Şimdilik XML'deki visibility="gone" ayarına güveniyoruz.
-            // binding.buttonDeleteTask.visibility = View.VISIBLE // Veya bir koşula göre
+            // Eğer düzenleme butonu varsa
+            /*binding.buttonEditTask?.setOnClickListener { // XML'de buttonEditTask ID'li bir view olmalı
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onEditTaskClicked?.invoke(getItem(position))
+                }
+            }*/
         }
 
         private fun updateTaskTitleAppearance(textView: TextView, isCompleted: Boolean) {
             if (isCompleted) {
                 textView.paintFlags = textView.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_secondary)) // Temadan renk
+                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_secondary))
             } else {
                 textView.paintFlags = textView.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
-                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_primary)) // Temadan renk
+                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.app_on_card_text_primary))
             }
         }
     }
@@ -131,6 +121,7 @@ class TaskListAdapter(
         }
 
         override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean {
+            // isCompleted, title, durationMinutes, actualFocusedMinutes, startTime karşılaştırılmalı
             return oldItem == newItem
         }
     }
