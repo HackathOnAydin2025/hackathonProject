@@ -3,17 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_nav"
-    app:startDestination="@id/taskListFragment">
-
-    <fragment
-        android:id="@+id/progressFragment"
-        android:name="com.example.hackathon.ProgressFragment"
-        android:label="ProgressFragment"
-        tools:layout="@layout/fragment_progress">
-        <action
-            android:id="@+id/action_progressFragment_to_taskListFragment"
-            app:destination="@id/taskListFragment" />
-    </fragment>
+    app:startDestination="@id/gardenFragment"> <fragment
+    android:id="@+id/progressFragment"
+    android:name="com.example.hackathon.ProgressFragment"
+    android:label="ProgressFragment"
+    tools:layout="@layout/fragment_progress">
+    <action
+        android:id="@+id/action_progressFragment_to_taskListFragment"
+        app:destination="@id/taskListFragment"
+        app:popUpTo="@id/taskListFragment"
+        app:popUpToInclusive="true"/>
+</fragment>
 
     <fragment
         android:id="@+id/taskListFragment"
@@ -27,14 +27,17 @@
             android:defaultValue="@null" />
         <action
             android:id="@+id/action_taskListFragment_to_pomodoroFragment"
-            app:destination="@id/pomodoroFragment" />
+            app:destination="@id/pomodoroFragment"
+            app:popUpTo="@id/pomodoroFragment" app:popUpToInclusive="true"/>     <action
+        android:id="@+id/action_taskListFragment_to_progressFragment"
+        app:destination="@id/progressFragment"
+        app:popUpTo="@id/progressFragment"
+        app:popUpToInclusive="true"/>
         <action
-            android:id="@+id/action_taskListFragment_to_progressFragment"
-            app:destination="@id/progressFragment"
-            app:popUpTo="@id/progressFragment"
-            app:popUpToInclusive="true"/> <action
-        android:id="@+id/action_taskListFragment_to_gardenFragment"
-        app:destination="@id/gardenFragment" />
+            android:id="@+id/action_taskListFragment_to_gardenFragment"
+            app:destination="@id/gardenFragment"
+            app:popUpTo="@id/gardenFragment"
+            app:popUpToInclusive="true"/>
     </fragment>
 
     <fragment
@@ -42,9 +45,17 @@
         android:name="com.example.hackathon.PomodoroFragment"
         android:label="PomodoroFragment"
         tools:layout="@layout/fragment_pomodoro" />
+
     <fragment
         android:id="@+id/gardenFragment"
         android:name="com.example.hackathon.GardenFragment"
         android:label="GardenFragment"
-        tools:layout="@layout/fragment_garden" />
+        tools:layout="@layout/fragment_garden" >
+        <action
+            android:id="@+id/action_gardenFragment_to_taskListFragment"
+            app:destination="@id/taskListFragment"
+            app:popUpTo="@id/taskListFragment"
+            app:popUpToInclusive="true"/>
+    </fragment>
+
 </navigation>
