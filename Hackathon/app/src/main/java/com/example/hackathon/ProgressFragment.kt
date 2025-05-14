@@ -68,6 +68,56 @@ class ProgressFragment : Fragment() {
             val dropText = drops?.joinToString { "${it.count} ${it.name}" } ?: "Damla yok"
             binding.dropText.text = dropText
         }
+
+        // Planlanan toplam odak süresini gözlemle (ProgressBar MAX için)
+        taskViewModel.totalPlannedFocusTimeToday.observe(viewLifecycleOwner, Observer { totalPlannedMinutes ->
+            val plannedMinutes = totalPlannedMinutes ?: 0
+            // ProgressBar'ın max değeri 0 olmamalı, anlamlı bir varsayılan ayarla (örn: 1 dakika = 1)
+            // Ya da eğer plan yoksa ProgressBar'ı gizleyebilir veya farklı bir durum gösterebilirsiniz.
+            binding.progressBarFocus.max = if (plannedMinutes > 0) plannedMinutes else 1 // Max 0 olmasın
+            updateFocusStatsText()
+        })
+
+        // Fiilen harcanan toplam odak süresini gözlemle (ProgressBar PROGRESS için)
+        taskViewModel.actualFocusTimeSpentToday.observe(viewLifecycleOwner, Observer { totalActualMinutes ->
+            val actualMinutes = totalActualMinutes ?: 0
+            binding.progressBarFocus.progress = actualMinutes
+            updateFocusStatsText()
+        })
+    }
+
+    private fun updateFocusStatsText() {
+        val actualMinutes = taskViewModel.actualFocusTimeSpentToday.value ?: 0
+        val plannedMinutes = taskViewModel.totalPlannedFocusTimeToday.value ?: 0
+
+        if (plannedMinutes > 0) {
+            binding.textViewFocusStats.text = "Bugün: $actualMinutes dk / $plannedMinutes dk odaklanıldı"
+        } else {
+            if (actualMinutes > 0) {
+                binding.textViewFocusStats.text = "Bugün: $actualMinutes dk odaklanıldı (Plansız)"
+            } else {
+                binding.textViewFocusStats.text = "Bugün odaklanma kaydı yok"
+            }
+        }
+        updateMotivationText(actualMinutes, plannedMinutes)
+    }
+
+    private fun updateMotivationText(actualMinutes: Int, plannedMinutes: Int) {
+        if (plannedMinutes == 0 && actualMinutes == 0) {
+            binding.textViewMotivation.text = "Bugün için bir odak planı yapmaya ne dersin? 🌱"
+        } else if (actualMinutes == 0 && plannedMinutes > 0) {
+            binding.textViewMotivation.text = "İlk adımını at, harika şeyler başarabilirsin! ✨"
+        } else if (actualMinutes > 0 && actualMinutes < plannedMinutes) {
+            binding.textViewMotivation.text = "Harika gidiyorsun, devam et! 🚀"
+        } else if (actualMinutes > 0 && actualMinutes >= plannedMinutes && plannedMinutes > 0) {
+            binding.textViewMotivation.text = "Tebrikler! Bugünkü hedefine ulaştın! 🎉"
+        } else if (actualMinutes > 0 && plannedMinutes == 0) {
+            binding.textViewMotivation.text = "Plansız da olsa odaklanmak harika! 💪"
+        }
+        else { // Bu durum genellikle (actualMinutes == 0 && plannedMinutes == 0) ile aynı, yukarıda zaten var.
+            // Ya da başka bir varsayılan mesaj.
+            binding.textViewMotivation.text = "Odaklanmaya devam et, potansiyelin sınırsız! 💪"
+        }
     }
 
     private fun loadAndObserveWeeklyTaskSummary() {

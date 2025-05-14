@@ -9,7 +9,7 @@ import com.example.hackathon.progress.dao.TreeDao
 import com.example.hackathon.progress.entity.Drop
 import com.example.hackathon.progress.entity.Tree
 
-@Database(entities = [Task::class, Tree::class, Drop::class], version = 2, exportSchema = false) // Versiyon 2 doğru.
+@Database(entities = [Task::class, Tree::class, Drop::class], version = 3, exportSchema = false) // Versiyon 2 doğru.
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun taskDao(): TaskDao

@@ -11,7 +11,6 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <!-- Başlık -->
         <TextView
             android:id="@+id/textTitle"
             android:layout_width="wrap_content"
@@ -22,7 +21,6 @@
             android:textColor="#333333"
             android:layout_gravity="center_horizontal" />
 
-        <!-- Tarih -->
         <TextView
             android:id="@+id/textDate"
             android:layout_width="wrap_content"
@@ -33,7 +31,6 @@
             android:layout_marginBottom="16dp"
             android:layout_gravity="center_horizontal" />
 
-        <!-- Görev Kartları -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -41,7 +38,6 @@
             android:weightSum="2"
             android:layout_marginBottom="16dp">
 
-            <!-- Ağaç Kartı -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="100dp"
@@ -62,13 +58,12 @@
                     android:id="@+id/treeText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="12 Ağaç"
+                    android:text="0 Ağaç"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
             </LinearLayout>
 
-            <!-- Damla Kartı -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="100dp"
@@ -89,14 +84,13 @@
                     android:id="@+id/dropText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="84 Damla"
+                    android:text="0 Damla"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Haftalık Grafik (Basit Temsil) -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -111,12 +105,19 @@
             android:layout_height="300dp"
             android:layout_marginBottom="24dp" />
 
-        <!-- Odak Süresi (Basit ProgressBar) -->
         <TextView
+            android:id="@+id/textViewFocusTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bugün: 90 dk odaklandın"
+            android:text="Bugünkü Toplam Odak Süresi"
             android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/textViewFocusStats" android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bugün: 0 dk odaklandın" android:textSize="16sp"
             android:layout_marginBottom="8dp" />
 
         <ProgressBar
@@ -124,23 +125,21 @@
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="12dp"
-            android:progress="75"
-            android:max="120"
-            android:progressTint="#4CAF50"
+            android:progress="0" android:max="120" android:progressTint="#4CAF50"
             android:layout_marginBottom="24dp" />
 
-        <!-- Motivasyon Kartı -->
         <TextView
+            android:id="@+id/textViewMotivation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bu hafta bir meşe ormanı kurdun! 🍂"
+            android:text="Harika bir gün geçiriyorsun! ✨"
             android:textSize="16sp"
             android:padding="16dp"
             android:background="#F1F8E9"
             android:layout_marginBottom="24dp"
-            android:elevation="1dp" />
+            android:elevation="1dp"
+            android:gravity="center"/>
 
-        <!-- Bahçeye Dön Butonu -->
         <Button
             android:id="@+id/buttonBackToGarden"
             android:layout_width="match_parent"
