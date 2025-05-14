@@ -5,16 +5,20 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ProgressBar
+import android.widget.Toast
+// import android.widget.ProgressBar // XML'de ID ile erişiliyor, doğrudan import gerekmeyebilir
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.activityViewModels // Paylaşılan ViewModel için
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.fragment.findNavController // Navigasyon için import
+// import androidx.lifecycle.ViewModelProvider // activityViewModels kullanıldığı için gereksiz
+import androidx.navigation.fragment.findNavController
 import com.example.hackathon.data.DailyTaskSummary
-import com.example.hackathon.data.Task // Task importu gereksizse kaldırılabilir, dialog kalktı
+// import com.example.hackathon.data.Task // Kullanılmıyorsa kaldırılabilir
 import com.example.hackathon.databinding.FragmentProgressBinding
-import com.example.hackathon.progress.viewmodel.GardenViewModel
+import com.example.hackathon.progress.viewmodel.GardenViewModel // ViewModel importu
+// DisplayableTreeInfo GardenViewModel içinde tanımlı olduğu için ayrıca import etmeye gerek yok,
+// eğer farklı bir dosyadaysa import edilmeli. Şimdilik ViewModel içinde olduğunu varsayıyoruz.
+// import com.example.hackathon.progress.viewmodel.DisplayableTreeInfo
 import com.example.hackathon.tasks.TaskViewModel
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.Entry
@@ -25,17 +29,16 @@ import com.github.mikephil.charting.formatter.DefaultValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.github.mikephil.charting.utils.ColorTemplate
-// MaterialAlertDialogBuilder importu artık gerekmeyebilir, dialog kalktı
-// import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.text.SimpleDateFormat
 import java.util.*
 
 class ProgressFragment : Fragment() {
 
-    private lateinit var binding: FragmentProgressBinding
-    private val gardenViewModel: GardenViewModel by lazy {
-        ViewModelProvider(this).get(GardenViewModel::class.java)
-    }
+    private var _binding: FragmentProgressBinding? = null
+    private val binding get() = _binding!!
+
+    // Paylaşılan GardenViewModel'i al
+    private val gardenViewModel: GardenViewModel by activityViewModels()
     private val taskViewModel: TaskViewModel by activityViewModels()
 
     private lateinit var pieChart: PieChart
@@ -45,7 +48,7 @@ class ProgressFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentProgressBinding.inflate(inflater, container, false)
+        _binding = FragmentProgressBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -56,67 +59,69 @@ class ProgressFragment : Fragment() {
         setupBasePieChartAppearance()
         loadAndObserveWeeklyTaskSummary()
 
-        gardenViewModel.loadTrees()
-        gardenViewModel.loadDrops()
-
-        gardenViewModel.trees.observe(viewLifecycleOwner) { trees ->
-            val treeText = trees?.joinToString { "${it.count} ${it.name}" } ?: "Ağaç yok"
-            binding.treeText.text = treeText
+        // GardenViewModel'den 3D BAHÇE ağaç bilgilerini gözlemle
+        // Önceki gardenViewModel.trees yerine gardenViewModel.gardenTreeInfo kullanılacak.
+        gardenViewModel.gardenTreeInfo.observe(viewLifecycleOwner) { treeInfoList ->
+            // treeInfoList, List<DisplayableTreeInfo> tipindedir.
+            // DisplayableTreeInfo(name: String, count: Int)
+            if (treeInfoList.isNullOrEmpty()) {
+                binding.treeText.text = "Bahçede ağaç yok"
+            } else {
+                val treeSummary = treeInfoList.joinToString(", ") { "${it.count} ${it.name}" }
+                binding.treeText.text = if (treeSummary.isNotEmpty()) treeSummary else "Bahçede ağaç yok"
+            }
         }
 
-        gardenViewModel.drops.observe(viewLifecycleOwner) { drops ->
-            val dropText = drops?.joinToString { "${it.count} ${it.name}" } ?: "Damla yok"
-            binding.dropText.text = dropText
+        // GardenViewModel'den su damlası sayısını gözlemle (JSON'dan gelen GardenState'ten)
+        gardenViewModel.waterDroplets.observe(viewLifecycleOwner) { waterCount ->
+            Log.d("ProgressFragment", "ProgressFragment: Gözlemlenen su damlası sayısı: $waterCount")
+            binding.dropText.text = "$waterCount Damla" // XML'deki ID'ye göre
         }
 
-        // Planlanan toplam odak süresini gözlemle (ProgressBar MAX için)
+        // Eğer Room'dan gelen _roomTrees ve _roomDrops LiveData'larını
+        // farklı bir amaç için kullanmak isterseniz, onları da gözlemleyebilirsiniz.
+        // gardenViewModel.roomTrees.observe(viewLifecycleOwner) { /* ... */ }
+        // gardenViewModel.roomDrops.observe(viewLifecycleOwner) { /* ... */ }
+
+
         taskViewModel.totalPlannedFocusTimeToday.observe(viewLifecycleOwner, Observer { totalPlannedMinutes ->
             val plannedMinutes = totalPlannedMinutes ?: 0
-            // ProgressBar'ın max değeri 0 olmamalı, anlamlı bir varsayılan ayarla (örn: 1 dakika = 1)
-            // Ya da eğer plan yoksa ProgressBar'ı gizleyebilir veya farklı bir durum gösterebilirsiniz.
-            binding.progressBarFocus.max = if (plannedMinutes > 0) plannedMinutes else 1 // Max 0 olmasın
+            binding.progressBarFocus.max = if (plannedMinutes > 0) plannedMinutes else 1
             updateFocusStatsText()
         })
 
-        // Fiilen harcanan toplam odak süresini gözlemle (ProgressBar PROGRESS için)
         taskViewModel.actualFocusTimeSpentToday.observe(viewLifecycleOwner, Observer { totalActualMinutes ->
             val actualMinutes = totalActualMinutes ?: 0
             binding.progressBarFocus.progress = actualMinutes
             updateFocusStatsText()
         })
+
+        binding.buttonBackToGarden.setOnClickListener {
+            findNavController().popBackStack() // Veya GardenFragment'a özel bir action ID
+        }
     }
 
     private fun updateFocusStatsText() {
         val actualMinutes = taskViewModel.actualFocusTimeSpentToday.value ?: 0
         val plannedMinutes = taskViewModel.totalPlannedFocusTimeToday.value ?: 0
 
-        if (plannedMinutes > 0) {
-            binding.textViewFocusStats.text = "Bugün: $actualMinutes dk / $plannedMinutes dk odaklanıldı"
+        binding.textViewFocusStats.text = if (plannedMinutes > 0) {
+            "Bugün: $actualMinutes dk / $plannedMinutes dk odaklanıldı"
         } else {
-            if (actualMinutes > 0) {
-                binding.textViewFocusStats.text = "Bugün: $actualMinutes dk odaklanıldı (Plansız)"
-            } else {
-                binding.textViewFocusStats.text = "Bugün odaklanma kaydı yok"
-            }
+            if (actualMinutes > 0) "Bugün: $actualMinutes dk odaklanıldı (Plansız)"
+            else "Bugün odaklanma kaydı yok"
         }
         updateMotivationText(actualMinutes, plannedMinutes)
     }
 
     private fun updateMotivationText(actualMinutes: Int, plannedMinutes: Int) {
-        if (plannedMinutes == 0 && actualMinutes == 0) {
-            binding.textViewMotivation.text = "Bugün için bir odak planı yapmaya ne dersin? 🌱"
-        } else if (actualMinutes == 0 && plannedMinutes > 0) {
-            binding.textViewMotivation.text = "İlk adımını at, harika şeyler başarabilirsin! ✨"
-        } else if (actualMinutes > 0 && actualMinutes < plannedMinutes) {
-            binding.textViewMotivation.text = "Harika gidiyorsun, devam et! 🚀"
-        } else if (actualMinutes > 0 && actualMinutes >= plannedMinutes && plannedMinutes > 0) {
-            binding.textViewMotivation.text = "Tebrikler! Bugünkü hedefine ulaştın! 🎉"
-        } else if (actualMinutes > 0 && plannedMinutes == 0) {
-            binding.textViewMotivation.text = "Plansız da olsa odaklanmak harika! 💪"
-        }
-        else { // Bu durum genellikle (actualMinutes == 0 && plannedMinutes == 0) ile aynı, yukarıda zaten var.
-            // Ya da başka bir varsayılan mesaj.
-            binding.textViewMotivation.text = "Odaklanmaya devam et, potansiyelin sınırsız! 💪"
+        binding.textViewMotivation.text = when {
+            plannedMinutes == 0 && actualMinutes == 0 -> "Bugün için bir odak planı yapmaya ne dersin? 🌱"
+            actualMinutes == 0 && plannedMinutes > 0 -> "İlk adımını at, harika şeyler başarabilirsin! ✨"
+            actualMinutes > 0 && actualMinutes < plannedMinutes -> "Harika gidiyorsun, devam et! 🚀"
+            actualMinutes > 0 && actualMinutes >= plannedMinutes && plannedMinutes > 0 -> "Tebrikler! Bugünkü hedefine ulaştın! 🎉"
+            actualMinutes > 0 && plannedMinutes == 0 -> "Plansız da olsa odaklanmak harika! 💪"
+            else -> "Odaklanmaya devam et, potansiyelin sınırsız! 💪"
         }
     }
 
@@ -152,7 +157,7 @@ class ProgressFragment : Fragment() {
             override fun onValueSelected(e: Entry, h: Highlight) {
                 val sliceIndex = h.x.toInt()
                 pieChartSliceDateMap[sliceIndex]?.let { selectedDate ->
-                    navigateToTaskListWithDate(selectedDate) // Dialog yerine navigasyon fonksiyonu çağrılacak
+                    navigateToTaskListWithDate(selectedDate)
                 }
             }
             override fun onNothingSelected() {}
@@ -178,7 +183,7 @@ class ProgressFragment : Fragment() {
             return
         }
 
-        val dataSet = PieDataSet(entries, "Haftalık Görev Dağılımı")
+        val dataSet = PieDataSet(entries, "")
         dataSet.setColors(*ColorTemplate.MATERIAL_COLORS)
         dataSet.valueTextSize = 14f
         dataSet.valueTextColor = android.graphics.Color.BLACK
@@ -191,28 +196,17 @@ class ProgressFragment : Fragment() {
         pieChart.invalidate()
     }
 
-    // ESKİ showTasksForSelectedDate METODU YERİNE BU KULLANILACAK:
     private fun navigateToTaskListWithDate(date: Date) {
         val queryDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val dateStringForNavigation = queryDateFormat.format(date)
-
         Log.d("ProgressFragment", "Navigating to TaskListFragment with date: $dateStringForNavigation")
-
-        // NavController ile TaskListFragment'a git ve tarihi argüman olarak gönder
-        // action_progressFragment_to_taskListFragment ID'si nav_graph.xml'deki action ID'nizle eşleşmeli
-        val action = ProgressFragmentDirections.progressToTaskList(dateStringForNavigation)
-        findNavController().navigate(action)
-    }
-
-    private fun updateFocusProgress(focusMinutes: Int) {
-        val progressBar: ProgressBar = binding.progressBarFocus
-        val maxFocusTime = 120
-        val progress = if (maxFocusTime > 0) {
-            (focusMinutes.toFloat() / maxFocusTime * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
+        try {
+            val action = ProgressFragmentDirections.actionProgressFragmentToTaskListFragment(dateStringForNavigation)
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            Log.e("ProgressFragment", "Navigasyon hatası: ${e.message}")
+            Toast.makeText(context, "Sayfa bulunamadı.", Toast.LENGTH_SHORT).show()
         }
-        progressBar.progress = progress
     }
 
     private fun getWeekDateRange(): String {
@@ -222,14 +216,16 @@ class ProgressFragment : Fragment() {
         val startOfWeek = calendar.time
         calendar.add(Calendar.DATE, 6)
         val endOfWeek = calendar.time
-
         val dayFormat = SimpleDateFormat("d", Locale("tr"))
-        val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("tr")) // Yıl için 'yyyy' kullanıldı
-
+        val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("tr")) // Yıl için 'yyyy'
         val startDay = dayFormat.format(startOfWeek)
         val endDay = dayFormat.format(endOfWeek)
         val monthYearString = monthYearFormat.format(startOfWeek)
-
         return "$startDay - $endDay $monthYearString"
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
