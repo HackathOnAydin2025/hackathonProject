@@ -178,17 +178,18 @@
         android:id="@+id/textView_empty_list_placeholder"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.2"
         android:text="Harika bir gün! 🌱\nBugün için henüz görev eklemedin.\nYeni bir görev ekleyerek bahçeni yeşertmeye başla!"
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:gravity="center"
-        android:lineSpacingMultiplier="1.2"
+        android:textSize="16sp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/textView_my_tasks_label"
         app:layout_constraintBottom_toTopOf="@+id/button_ask_gemini"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:visibility="visible"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/textView_my_tasks_label"
+        tools:visibility="visible" />
 
     <ProgressBar
         android:id="@+id/progress_bar_gemini"
@@ -209,6 +210,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Gemini'ye Sor: Zamanımı Planla"
+        app:backgroundTint="@color/user_dark_green"
         app:icon="@drawable/ic_gemini_sparkle"
         android:layout_marginBottom="16dp"
         android:layout_marginStart="20dp"

@@ -14,16 +14,17 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/main_nav"
-        android:layout_marginBottom="@dimen/bottom_nav_height_for_content" /> <com.google.android.material.bottomappbar.BottomAppBar
-    android:id="@+id/bottomAppBar"
-    style="@style/Widget.MaterialComponents.BottomAppBar.PrimarySurface"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_gravity="bottom"
-    app:fabAlignmentMode="center"
-    app:fabCradleMargin="8dp"
-    app:fabCradleRoundedCornerRadius="16dp"
-    app:hideOnScroll="true">
+        android:layout_marginBottom="@dimen/bottom_nav_height_for_content" />
+    <com.google.android.material.bottomappbar.BottomAppBar
+        android:id="@+id/bottomAppBar"
+        android:backgroundTint="@color/user_light_green"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        app:fabAlignmentMode="center"
+        app:fabCradleMargin="8dp"
+        app:fabCradleRoundedCornerRadius="16dp"
+        app:hideOnScroll="true">
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"

@@ -14,43 +14,44 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-            padding: 8px;
+            flex-wrap: wrap; /* Butonların sığmazsa alt satıra geçmesini sağlar */
+            justify-content: center; /* Butonları yatayda ortalar */
+            gap: 5px; /* Butonlar arası boşluk azaltıldı */
+            padding: 5px; /* İç boşluk azaltıldı */
             background-color: rgba(255,255,255,0.9);
             border-radius: 10px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
             z-index: 100;
-            max-width: 95vw;
+            max-width: 96vw; /* Kontrol panelinin maksimum genişliği biraz artırıldı */
             box-sizing: border-box;
         }
         .controls button {
-            padding: 8px 12px;
-            background-color: #A4B465;
+            padding: 6px 10px; /* Buton iç boşluğu azaltıldı */
+            background-color: #A4B465; /* Light Green */
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 11px; /* Yazı boyutu biraz daha azaltıldı */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Gölge hafifletildi */
             transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
             text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+            line-height: 1.3; /* Satır yüksekliği ayarlandı */
         }
         .controls button:hover {
-            background-color: #B5C77E;
+            background-color: #B5C77E; /* Lighter Green */
             transform: translateY(-1px);
-            box-shadow: 0 3px 5px rgba(0,0,0,0.25);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
         .controls button:active {
             transform: translateY(0px);
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         .controls button.selected {
-            background-color: #F0BB78;
-            color: #626F47;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.2);
+            background-color: #F0BB78; /* Orange */
+            color: #626F47; /* Dark Green */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.2);
         }
         .controls button#cancelPlacementButton { background-color: #E97451; }
         .controls button#cancelPlacementButton:hover { background-color: #F08080; }
@@ -162,7 +163,7 @@
         }
     }
 
-    function createGroundSlots() { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function createGroundSlots() {
         LogToAndroid("createGroundSlots çağrıldı.");
         const slotGeometry = new THREE.PlaneGeometry(BLOCK_SIZE, BLOCK_SIZE);
         const slotMaterial = new THREE.MeshPhongMaterial({ color: userColors.ground_slot_color, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false });
@@ -180,32 +181,32 @@
         LogToAndroid(`${groundSlotMeshes.length} zemin slotu oluşturuldu.`);
     }
 
-    function setPlacementMode(mode) { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function setPlacementMode(mode) {
         if (currentPlacementMode === mode && mode !== null) { cancelPlacementMode(); return; }
         if (waterPlantModeActive) { waterPlantModeActive = false; document.getElementById('waterPlantButton').classList.remove('selected'); LogToAndroid("setPlacementMode: Aktif sulama modu kapatıldı."); }
         currentRotationY = 0; currentPlacementMode = mode; LogToAndroid(`Yerleştirme modu ayarlandı: ${currentPlacementMode}`);
         updateButtonStatesAndInfo();
         if (previewMesh) { scene.remove(previewMesh); if (previewMesh.geometry) previewMesh.geometry.dispose(); if (previewMesh.material) { if (Array.isArray(previewMesh.material)) { previewMesh.material.forEach(m => m.dispose()); } else { previewMesh.material.dispose(); } } previewMesh = null; }
         if (mode && mode !== 'water_plant') {
-            previewMesh = createObjectMesh(mode, true, 0, 0, currentRotationY); // Preview için stage/waterLevel 0, rotasyon önemli
+            previewMesh = createObjectMesh(mode, true, 0, 0, currentRotationY);
             if (previewMesh) { previewMesh.visible = false; previewMesh.rotation.y = currentRotationY; scene.add(previewMesh); LogToAndroid(`${mode} için önizleme oluşturuldu.`); }
             else { LogToAndroid(`${mode} için önizleme OLUŞTURULAMADI! Mod iptal ediliyor.`); cancelPlacementMode(); }
         }
     }
-    function toggleWaterPlantMode() { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function toggleWaterPlantMode() {
         LogToAndroid("toggleWaterPlantMode çağrıldı.");
         if (waterPlantModeActive) { waterPlantModeActive = false; currentPlacementMode = null; LogToAndroid("Bitki Sulama Modu KAPATILDI."); }
         else { cancelPlacementMode(); waterPlantModeActive = true; currentPlacementMode = 'water_plant'; LogToAndroid("Bitki Sulama Modu AÇILDI."); }
         updateButtonStatesAndInfo();
     }
-    function cancelPlacementMode() { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function cancelPlacementMode() {
         LogToAndroid(`cancelPlacementMode çağrıldı. Mevcut mod: ${currentPlacementMode}, Su Modu: ${waterPlantModeActive}`);
         if (previewMesh) { scene.remove(previewMesh); if (previewMesh.geometry) previewMesh.geometry.dispose(); if (previewMesh.material) { if (Array.isArray(previewMesh.material)) { previewMesh.material.forEach(m => m.dispose()); } else { previewMesh.material.dispose(); } } previewMesh = null; }
         if (highlightedSlot) { highlightedSlot.material.color.setHex(highlightedSlot.userData.originalColor); highlightedSlot.material.opacity = 0.3; highlightedSlot = null; }
         currentPlacementMode = null; waterPlantModeActive = false; currentRotationY = 0;
         updateButtonStatesAndInfo(); LogToAndroid("Tüm modlar iptal edildi.");
     }
-    function updateButtonStatesAndInfo() { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function updateButtonStatesAndInfo() {
         const modeText = document.getElementById('currentModeText'); const modeInfoDiv = document.getElementById('placement-mode-info');
         const cancelButton = document.getElementById('cancelPlacementButton'); const rotateButton = document.getElementById('rotateObjectButton');
         document.querySelectorAll('.controls button').forEach(b => b.classList.remove('selected'));
@@ -213,11 +214,11 @@
         else if (currentPlacementMode) { modeText.textContent = currentPlacementMode.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); modeInfoDiv.style.display = 'block'; cancelButton.style.display = 'inline-block'; const activeButton = document.querySelector(`.placement-button[data-type="${currentPlacementMode}"]`); if (activeButton) activeButton.classList.add('selected'); if (currentPlacementMode === 'wall' || currentPlacementMode === 'fence') { rotateButton.style.display = 'inline-block'; } else { rotateButton.style.display = 'none'; } }
         else { modeText.textContent = "Yok"; modeInfoDiv.style.display = 'none'; cancelButton.style.display = 'none'; rotateButton.style.display = 'none'; }
     }
-    function rotatePreviewObject() { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function rotatePreviewObject() {
         if (previewMesh && (currentPlacementMode === 'wall' || currentPlacementMode === 'fence')) { currentRotationY += Math.PI / 2; if (currentRotationY >= Math.PI * 2) { currentRotationY = 0; } previewMesh.rotation.y = currentRotationY; LogToAndroid(`Önizleme döndürüldü: ${currentRotationY} radyan`); }
     }
 
-    function onCanvasPointerDown(event) { /* ... (Mevcut kodunuzdaki notifyObjectPlaced çağrısındaki typeSpecificData güncellenecek) ... */
+    function onCanvasPointerDown(event) {
         LogToAndroid(`onCanvasPointerDown: mode=${currentPlacementMode}, waterMode=${waterPlantModeActive}, button=${event.button}, pointerType=${event.pointerType}`);
         if (event.target.closest && event.target.closest('.controls')) return;
         if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -250,15 +251,15 @@
         }
         if (!currentPlacementMode) return;
         let intersects, placeX, placeZ, placeY;
-        let typeSpecificData = { rotationY: currentRotationY }; // Varsayılan olarak rotasyon
+        let typeSpecificData = { rotationY: currentRotationY };
 
         if (currentPlacementMode === 'ground') {
             intersects = raycaster.intersectObjects(groundSlotMeshes.filter(s => !s.userData.isOccupiedByGround));
             if (intersects.length > 0) {
                 const targetSlot = intersects[0].object; placeX = targetSlot.position.x; placeZ = targetSlot.position.z; placeY = 0;
                 if (!canPlaceObject(currentPlacementMode, placeX, placeY, placeZ, true)) return;
-                typeSpecificData.colorHex = userColors.light_green; // Zemin için renk ekle
-                typeSpecificData.rotationY = 0; // Zemin için rotasyon her zaman 0
+                typeSpecificData.colorHex = userColors.light_green;
+                typeSpecificData.rotationY = 0;
                 const newGround = placeObject(currentPlacementMode, placeX, placeY, placeZ, null, 0, 0, userColors.light_green, 0);
                 if (newGround) {
                     targetSlot.userData.isOccupiedByGround = true; targetSlot.visible = false;
@@ -270,11 +271,6 @@
             if (intersects.length > 0) {
                 const groundTarget = intersects[0].object; placeX = groundTarget.position.x; placeZ = groundTarget.position.z; placeY = BLOCK_SIZE / 2;
                 if (!canPlaceObject(currentPlacementMode, placeX, placeY, placeZ)) return;
-                // typeSpecificData zaten currentRotationY içeriyor.
-                // Çiçekler için renk gibi ek bilgiler gerekirse burada eklenebilir.
-                // if (currentPlacementMode === 'flower_red') typeSpecificData.colorHex = userColors.flower_red_petal;
-                // else if (currentPlacementMode === 'flower_yellow') typeSpecificData.colorHex = userColors.flower_yellow_petal;
-
                 const newObject = placeObject(currentPlacementMode, placeX, placeY, placeZ, null, 0, 0, null, currentRotationY);
                 if (newObject) {
                     notifyObjectPlaced(currentPlacementMode, newObject.uuid, placeX, newObject.position.y, placeZ, typeSpecificData);
@@ -287,7 +283,7 @@
         }
     }
 
-    function onCanvasMouseMove(event) { /* ... (Mevcut kodunuzdaki gibi, değişiklik yok) ... */
+    function onCanvasMouseMove(event) {
         if (waterPlantModeActive) { if(previewMesh) previewMesh.visible = false; return; }
         if (!currentPlacementMode || !previewMesh) { if (previewMesh) previewMesh.visible = false; if (highlightedSlot) { highlightedSlot.material.color.setHex(highlightedSlot.userData.originalColor); highlightedSlot.material.opacity = 0.3; highlightedSlot = null; } return; }
         const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -304,12 +300,10 @@
         if (isValidTarget) { previewMesh.position.set(placeX, placeY, placeZ); previewMesh.rotation.y = currentRotationY; previewMesh.visible = true; } else { previewMesh.visible = false; }
     }
 
-    // createObjectMesh: growthStage ve rotationY parametrelerini alacak şekilde güncellendi
     function createObjectMesh(type, isPreview = false, growthStage = 0, waterLevel = 0, rotationY = 0) {
         let geometry, material, meshOrGroup;
         const opacity = isPreview ? 0.6 : 1.0;
         const effectiveColor = isPreview ? userColors.preview_valid_color : null;
-
         switch (type.toLowerCase()) {
             case 'ground':
                 geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
@@ -318,7 +312,7 @@
                 break;
             case 'plant':
                 const plantGroup = new THREE.Group();
-                buildPlantStructure(plantGroup, growthStage, isPreview, effectiveColor); // growthStage kullanılıyor
+                buildPlantStructure(plantGroup, growthStage, isPreview, effectiveColor);
                 meshOrGroup = plantGroup;
                 break;
             case 'wall':
@@ -327,7 +321,6 @@
                 material = new THREE.MeshStandardMaterial({ color: effectiveColor || userColors.wall_grey, roughness: 0.8, metalness: 0.1, transparent: isPreview, opacity: opacity });
                 meshOrGroup = new THREE.Mesh(geometry, material);
                 meshOrGroup.position.y = wallHeight / 2;
-                // meshOrGroup.rotation.y = rotationY; // Rotasyon placeObject içinde ayarlanacak
                 break;
             case 'fence':
                 const fenceGroup = new THREE.Group();
@@ -341,7 +334,6 @@
                 const railTop = new THREE.Mesh(railGeo, postMat.clone()); railTop.position.y = fenceHeight * 0.75; fenceGroup.add(railTop);
                 const railBottom = new THREE.Mesh(railGeo, postMat.clone()); railBottom.position.y = fenceHeight * 0.25; fenceGroup.add(railBottom);
                 meshOrGroup = fenceGroup;
-                // meshOrGroup.rotation.y = rotationY; // Rotasyon placeObject içinde ayarlanacak
                 break;
             case 'flower_red': case 'flower_yellow':
                 const flowerGroup = new THREE.Group();
@@ -364,7 +356,6 @@
         return meshOrGroup;
     }
 
-    // placeObject: growthStage, waterLevel, colorHex, rotationY parametrelerini alacak ve kullanacak şekilde güncellendi
     function placeObject(type, x, y, z, uuid = null, growthStage = 0, waterLevel = 0, colorHex = null, rotationY = 0) {
         LogToAndroid(`placeObject çağrıldı: type=${type}, x=${x}, y=${y}, z=${z}, uuid=${uuid}, stage=${growthStage}, water=${waterLevel}, color=${colorHex ? '0x'+colorHex.toString(16):'N/A'}, rotY=${rotationY}`);
         let newObjectMesh;
@@ -375,19 +366,18 @@
         const objectData = {
             uuid: uuid || THREE.MathUtils.generateUUID(),
             type: type, x: finalX, y: finalY, z: finalZ,
-            rotationY: rotationY, // rotationY her zaman objectData'ya eklenir
-            growthStage: type === 'plant' ? growthStage : undefined, // Sadece bitki için anlamlı
-            waterLevel: type === 'plant' ? waterLevel : undefined,   // Sadece bitki için anlamlı
-            colorHex: type === 'ground' || type.includes('flower') ? colorHex : undefined // Zemin ve çiçekler için
+            rotationY: rotationY,
+            growthStage: type === 'plant' ? growthStage : undefined,
+            waterLevel: type === 'plant' ? waterLevel : undefined,
+            colorHex: type === 'ground' || type.includes('flower') ? colorHex : undefined
         };
 
         if (type === 'ground') {
-            finalY = 0; // Zemin bloğunun merkezi y=0'da
+            finalY = 0;
             objectData.y = finalY;
-            objectData.colorHex = colorHex || userColors.light_green; // Zemin için renk
+            objectData.colorHex = colorHex || userColors.light_green;
         }
 
-        // createObjectMesh'e ilgili parametreleri ilet
         newObjectMesh = createObjectMesh(type, false, growthStage, waterLevel, rotationY);
         if (!newObjectMesh) {
             LogToAndroid(`placeObject: ${type} için mesh oluşturulamadı.`);
@@ -395,28 +385,21 @@
         }
 
         newObjectMesh.position.set(finalX, finalY, finalZ);
-        newObjectMesh.rotation.y = rotationY; // Rotasyonu her zaman uygula
+        newObjectMesh.rotation.y = rotationY;
         newObjectMesh.uuid = objectData.uuid;
 
-        // userData'yı ayarla
         newObjectMesh.userData = { type: type, rotationY: rotationY };
         if (type === 'plant') {
             newObjectMesh.userData.growthStage = growthStage;
             newObjectMesh.userData.waterLevel = waterLevel;
-             // buildPlantStructure zaten createObjectMesh içinde doğru stage ile çağrıldı.
         } else if (type === 'ground') {
-            newObjectMesh.material.color.setHex(objectData.colorHex); // Rengi ayarla
+            newObjectMesh.material.color.setHex(objectData.colorHex);
             newObjectMesh.userData.colorHex = objectData.colorHex;
             newObjectMesh.userData.isSlot = false;
-        } else if (type.includes('flower')) {
-            // Çiçeklerin rengi createObjectMesh içinde ayarlanır, burada ek bir şey yapmaya gerek yok
-            // ama objectData.colorHex'i Android'e göndermek için saklayabiliriz.
-            // Android tarafı zaten bu rengi kullanmıyor gibi görünüyor.
         }
 
-
         scene.add(newObjectMesh);
-        placedObjects.push({ mesh: newObjectMesh, data: objectData }); // objectData'yı sakla
+        placedObjects.push({ mesh: newObjectMesh, data: objectData });
 
         if (type === 'ground') {
             if (!solidGroundMeshes.find(gm => gm.uuid === newObjectMesh.uuid)) {
@@ -429,7 +412,7 @@
         return newObjectMesh;
     }
 
-    function buildPlantStructure(plantGroup, stage, isPreview, baseMatColor = null) { /* ... (Mevcut kodunuzdaki gibi, stage parametresini kullanıyor) ... */
+    function buildPlantStructure(plantGroup, stage, isPreview, baseMatColor = null) {
         while (plantGroup.children.length > 0) { const child = plantGroup.children[0]; plantGroup.remove(child); if (child.geometry) child.geometry.dispose(); if (child.material) { if (Array.isArray(child.material)) child.material.forEach(m => m.dispose()); else child.material.dispose(); } }
         const opacity = isPreview ? 0.6 : 1.0; const currentTrunkColor = baseMatColor !== null ? baseMatColor : userColors.wood_brown; const currentLeafColor = baseMatColor !== null ? baseMatColor : userColors.leaf_green;
         const trunkMaterial = new THREE.MeshStandardMaterial({ color: currentTrunkColor, roughness: 0.8, transparent: isPreview, opacity: opacity }); const leafMaterial = new THREE.MeshStandardMaterial({ color: currentLeafColor, roughness: 0.7, transparent: isPreview, opacity: opacity });
@@ -440,14 +423,14 @@
         plantGroup.userData.growthStage = stage;
     }
 
-    function onWindowResize() { /* ... (Mevcut kodunuzdaki gibi) ... */ camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-    function animate() { /* ... (Mevcut kodunuzdaki gibi) ... */ requestAnimationFrame(animate); controls.enabled = !currentPlacementMode && !waterPlantModeActive; controls.update(); renderer.render(scene, camera); }
-    function canPlaceObject(type, x, y, z, isGroundPlacement = false) { /* ... (Mevcut kodunuzdaki gibi) ... */ if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.canPlaceObject === "function") { return window.AndroidBridge.canPlaceObject(type, x, y, z); } if (!isGroundPlacement) { const targetCellOccupied = placedObjects.some(obj => obj.data.type !== 'ground' && obj.data.x === x && obj.data.z === z ); if (targetCellOccupied) { LogToAndroid(`Yerleştirme engellendi: (${x},${z}) dolu.`); return false; } } return true; }
-    function notifyObjectPlaced(type, uuid, x, y, z, typeSpecificData = {}) { /* ... (Mevcut kodunuzdaki gibi, typeSpecificData artık rotationY ve colorHex içerebilir) ... */ const dataString = JSON.stringify(typeSpecificData); if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onObjectPlaced === "function") { window.AndroidBridge.onObjectPlaced(type, uuid, x, y, z, dataString); } LogToAndroid(`Notify: Object Placed - ${type} ${uuid} at (x:${x},y:${y},z:${z}), data: ${dataString}`); }
-    function notifyGroundColorChanged(x, z, newColorHex) { /* ... (Mevcut kodunuzdaki gibi) ... */ if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onGroundColorChanged === "function") { window.AndroidBridge.onGroundColorChanged(parseFloat(x.toFixed(2)), parseFloat(z.toFixed(2)), newColorHex); } LogToAndroid(`Notify: Ground Color Changed at (x:${x},z:${z}) to 0x${newColorHex.toString(16)}`); }
-    function notifyObjectModified(type, uuid, growthStage, waterLevel) { /* ... (Mevcut kodunuzdaki gibi) ... */ if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onObjectModified === "function") { window.AndroidBridge.onObjectModified(type, uuid, growthStage, waterLevel); } LogToAndroid(`Notify: Object Modified - ${type} ${uuid}, stage: ${growthStage}, water: ${waterLevel}`); }
-    window.setWaterCount = function(count) { /* ... (Mevcut kodunuzdaki gibi) ... */ document.getElementById('waterCount').textContent = count; };
-    function updateObjectCount(){ /* ... (Mevcut kodunuzdaki gibi) ... */ const count = placedObjects.filter(obj => obj.data.type.toLowerCase() !== 'ground').length; document.getElementById('objectCount').textContent = count; if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.updateObjectCount === "function") { window.AndroidBridge.updateObjectCount(count); } }
+    function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+    function animate() { requestAnimationFrame(animate); controls.enabled = !currentPlacementMode && !waterPlantModeActive; controls.update(); renderer.render(scene, camera); }
+    function canPlaceObject(type, x, y, z, isGroundPlacement = false) { if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.canPlaceObject === "function") { return window.AndroidBridge.canPlaceObject(type, x, y, z); } if (!isGroundPlacement) { const targetCellOccupied = placedObjects.some(obj => obj.data.type !== 'ground' && obj.data.x === x && obj.data.z === z ); if (targetCellOccupied) { LogToAndroid(`Yerleştirme engellendi: (${x},${z}) dolu.`); return false; } } return true; }
+    function notifyObjectPlaced(type, uuid, x, y, z, typeSpecificData = {}) { const dataString = JSON.stringify(typeSpecificData); if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onObjectPlaced === "function") { window.AndroidBridge.onObjectPlaced(type, uuid, x, y, z, dataString); } LogToAndroid(`Notify: Object Placed - ${type} ${uuid} at (x:${x},y:${y},z:${z}), data: ${dataString}`); }
+    function notifyGroundColorChanged(x, z, newColorHex) { if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onGroundColorChanged === "function") { window.AndroidBridge.onGroundColorChanged(parseFloat(x.toFixed(2)), parseFloat(z.toFixed(2)), newColorHex); } LogToAndroid(`Notify: Ground Color Changed at (x:${x},z:${z}) to 0x${newColorHex.toString(16)}`); }
+    function notifyObjectModified(type, uuid, growthStage, waterLevel) { if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.onObjectModified === "function") { window.AndroidBridge.onObjectModified(type, uuid, growthStage, waterLevel); } LogToAndroid(`Notify: Object Modified - ${type} ${uuid}, stage: ${growthStage}, water: ${waterLevel}`); }
+    window.setWaterCount = function(count) { document.getElementById('waterCount').textContent = count; };
+    function updateObjectCount(){ const count = placedObjects.filter(obj => obj.data.type.toLowerCase() !== 'ground').length; document.getElementById('objectCount').textContent = count; if (typeof window.AndroidBridge !== "undefined" && typeof window.AndroidBridge.updateObjectCount === "function") { window.AndroidBridge.updateObjectCount(count); } }
 
     window.loadGardenState = function(gardenDataJsonString) {
         try {
@@ -463,18 +446,15 @@
                 gardenData.objects.forEach(objData => {
                     LogToAndroid(`LOAD JS: Obje yükleniyor: type=${objData.type}, x=${objData.x}, y=${objData.y}, z=${objData.z}, uuid=${objData.uuid}, stage=${objData.growthStage}, water=${objData.waterLevel}, color=${objData.colorHex}, rotY=${objData.rotationY}`);
                     const type = objData.type.toLowerCase();
-                    let placeY = parseFloat(objData.y); // Android'den gelen Y'yi al
+                    let placeY = parseFloat(objData.y);
                     const growthStage = objData.growthStage !== undefined ? objData.growthStage : 0;
                     const waterLevel = objData.waterLevel !== undefined ? objData.waterLevel : 0;
-                    const colorHex = objData.colorHex; // undefined olabilir, placeObject halleder
-                    const rotationY = objData.rotationY || 0; // Varsayılan 0
+                    const colorHex = objData.colorHex;
+                    const rotationY = objData.rotationY || 0;
 
                     if (type === "ground") {
-                        placeY = 0; // Zemin bloklarının merkezi her zaman y=0 olmalı
+                        placeY = 0;
                     }
-                    // Diğer objeler için (plant, wall, fence, flower), Android'den gelen Y değeri
-                    // objenin TABANININ dünya koordinatındaki Y'si olmalı.
-                    // placeObject fonksiyonu bu Y değerini doğrudan kullanır.
 
                     const newObj = placeObject(type, objData.x, placeY, objData.z, objData.uuid, growthStage, waterLevel, colorHex, rotationY);
 
@@ -483,15 +463,12 @@
                             const slot = groundSlotMeshes.find(s => s.userData.x === objData.x && s.userData.z === objData.z);
                             if (slot) { slot.userData.isOccupiedByGround = true; slot.visible = false; }
                         } else if (type === "plant") {
-                            // Bitki altındaki zemin rengi, Android tarafında zaten yönetiliyor olmalı
-                            // veya placeObject içinde bu mantık tekrar edilebilir.
-                            // Şimdilik, Android'in gönderdiği state'e güveniyoruz.
                             const groundMeshUnder = solidGroundMeshes.find(gm => gm.position.x === objData.x && gm.position.z === objData.z);
-                            if(groundMeshUnder && objData.colorHex === userColors.dirt_brown){ // Eğer bitki altındaki zemin dirt_brown ise
-                                 // Bu kontrol aslında Android'den gelen `groundBlock.colorHex` ile yapılmalı.
-                                 // Şimdilik, eğer bitki varsa ve altında zemin varsa, rengini dirt_brown yapalım.
-                                 // Bu, Android tarafındaki `placeObjectIn3DGarden` mantığıyla tutarlı olmalı.
-                                 groundMeshUnder.material.color.setHex(userColors.dirt_brown);
+                            if(groundMeshUnder){
+                                 const originalGround = gardenData.objects.find(o => o.type.toLowerCase() === 'ground' && o.x === objData.x && o.z === objData.z);
+                                 if(objData.waterLevel > 0 || (originalGround && originalGround.colorHex === userColors.dirt_brown)) {
+                                     groundMeshUnder.material.color.setHex(userColors.dirt_brown);
+                                 }
                             }
                         }
                     } else {
@@ -512,4 +489,3 @@
 </script>
 </body>
 </html>
-```
