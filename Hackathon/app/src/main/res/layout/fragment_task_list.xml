@@ -62,7 +62,7 @@
             android:id="@+id/textView_header_today"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bugün"
+            android:text="Today"
             style="@style/TextAppearance.App.HeaderToday"
             app:layout_constraintTop_toBottomOf="@id/icon_grid_menu"
             app:layout_constraintStart_toStartOf="parent"
@@ -82,7 +82,7 @@
             style="@style/Widget.App.Button.AddNewHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add New"
+            android:text="Ekle"
             app:icon="@drawable/ic_add_circle_outline"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/textView_header_task_count"
@@ -209,15 +209,15 @@
         style="@style/Widget.App.Button.AskGemini"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="50dp"
         android:text="Gemini'ye Sor: Zamanımı Planla"
         app:backgroundTint="@color/user_dark_green"
         app:icon="@drawable/ic_gemini_sparkle"
-        android:layout_marginBottom="16dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

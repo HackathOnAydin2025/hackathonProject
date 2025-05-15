@@ -155,7 +155,7 @@ class TaskListFragment : Fragment() {
         val sdfHeaderDate = SimpleDateFormat("dd MMM", Locale("tr")); binding.textViewHeaderDateCentered.text = sdfHeaderDate.format(selectedCalendar.time)
         val todayCal = Calendar.getInstance()
         if (isSameDay(selectedCalendar, todayCal)) {
-            binding.textViewHeaderToday.text = "Today"
+            binding.textViewHeaderToday.text = "Bugün"
         } else {
             val sdfDayNameFull = SimpleDateFormat("EEEE", Locale("tr"))
             binding.textViewHeaderToday.text = sdfDayNameFull.format(selectedCalendar.time)
@@ -414,8 +414,8 @@ class TaskListFragment : Fragment() {
         // Dialog gösterildikten sonra butonların rengini ayarla
         // Butonların ID'leri standarttır: DialogInterface.BUTTON_POSITIVE, DialogInterface.BUTTON_NEGATIVE
         try {
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.WHITE)
-            dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.WHITE)
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.GREEN)
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.RED)
         } catch (e: Exception) {
             Log.e(TAG, "Dialog buton rengi ayarlanırken hata: ${e.message}", e)
         }
