@@ -51,14 +51,10 @@ Florada, Pomodoro tekniğini kullanarak görev yönetimi ve odaklanma süresini 
 * **UI/UX:** Material Design Components
 
 ## 🖼️ Ekran Görüntüleri
-
-*(Bu kısma uygulamanızın temel ekranlarının (Görev Listesi, Pomodoro Zamanlayıcısı, 3D Bahçe, İlerleme Raporu) ekran görüntülerini veya GIF'lerini ekleyebilirsiniz.)*
-
-Örnek:
-`![Bahçe](![garden](https://github.com/user-attachments/assets/456a8a46-e3ba-49b4-9584-7bafe932a4cf))`
-`![Pomodoro Ekranı](![pamodoro](https://github.com/user-attachments/assets/21c82646-4098-4300-a586-f4d39f19fdd7))`
-`![Görev Listesi](![task](https://github.com/user-attachments/assets/cc48da4e-8714-4175-b539-969d88be40ec))`
-`![İlerleme Raporu](![ilerleme](https://github.com/user-attachments/assets/dccacc24-3610-4513-be76-15be7e870a56))`
+![garden](https://github.com/user-attachments/assets/c5c2928c-c05d-4bc9-b7c5-153b217de68f)
+![pamodoro](https://github.com/user-attachments/assets/f9daced4-8428-47a3-aaf2-edd8ba39c08e)
+![task](https://github.com/user-attachments/assets/3530f3a4-547e-4536-99c5-b651a3e8b19e)
+![ilerleme](https://github.com/user-attachments/assets/c4691a8c-426e-49f0-916b-1801f6c56c06)
 
 ## 🧩 Modüller ve Ana Bileşenler
 
