@@ -1,4 +1,4 @@
-# Florada - Android Uygulama
+# Florado - Android Uygulama
 
 Florada, Pomodoro tekniğini kullanarak görev yönetimi ve odaklanma süresini artırmayı hedefleyen, aynı zamanda kullanıcıları motive etmek için 3D bir bahçe yetiştirme deneyimi sunan bir Android uygulamasıdır. Tamamladığınız görevler ve odaklandığınız süreler boyunca "su damlaları" kazanarak sanal bahçenizi dekore edebilir ve bitkilerinizi büyütebilirsiniz.
 
