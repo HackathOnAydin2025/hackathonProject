@@ -1,1 +1,89 @@
-# hackathonProject
+# Florada - Android Uygulama
+
+Florada, Pomodoro tekniğini kullanarak görev yönetimi ve odaklanma süresini artırmayı hedefleyen, aynı zamanda kullanıcıları motive etmek için 3D bir bahçe yetiştirme deneyimi sunan bir Android uygulamasıdır. Tamamladığınız görevler ve odaklandığınız süreler boyunca "su damlaları" kazanarak sanal bahçenizi dekore edebilir ve bitkilerinizi büyütebilirsiniz.
+
+## 🎯 Temel Özellikler
+
+* **Görev Yönetimi:**
+    * Günlük ve haftalık görevler oluşturma, düzenleme ve silme.
+    * Görevler için süre (Pomodoro seansları) ve başlangıç zamanı belirleme.
+    * Tamamlanan görevleri işaretleme.
+    * Görevler için harcanan gerçek odak süresini takip etme.
+* **Pomodoro Zamanlayıcısı:**
+    * Özelleştirilebilir Pomodoro seansları.
+    * Başlatma, duraklatma ve sıfırlama işlevleri.
+    * Görsel ilerleme göstergesi ve kalan süre takibi.
+    * Odaklanmayı artırmak için arka planda çalabilen "soft brown noise" (yumuşak kahverengi gürültü).
+    * Seans tamamlandığında kutlama animasyonu.
+* **3D Sanal Bahçe:**
+    * Görevleri tamamlayarak kazanılan "su damlaları" ile bahçe objeleri (zemin, fidan, duvar, çit, çiçekler) satın alma.
+    * Fidanları sulayarak farklı büyüme aşamalarına (fidan -> küçük ağaç -> büyük ağaç) getirme.
+    * Bahçe düzenini özelleştirme ve objeleri döndürme.
+    * WebView içinde çalışan Three.js ile oluşturulmuş interaktif 3D sahne.
+    * Bahçe durumunun JSON formatında cihazda saklanması.
+* **İlerleme Takibi:**
+    * Haftalık görev tamamlanma dağılımını gösteren pasta grafiği.
+    * Bahçedeki toplam ağaç sayısı ve biriktirilen su damlası miktarının özeti.
+    * Günlük planlanan ve gerçekleşen odak süresi için ilerleme çubuğu.
+    * Kullanıcıyı motive edici mesajlar.
+* **📅 Tarih Bazlı Görev Görünümü:**
+    * Çip tabanlı arayüz ile farklı günler arasında kolayca geçiş yapma.
+    * Seçilen tarihe ait görevleri listeleme.
+* **✨ Gemini AI Entegrasyonu:**
+    * Tamamlanmamış görevlerinize göre Gemini AI'dan zaman yönetimi ve görev planlama önerileri alma.
+
+## 🛠️ Kullanılan Teknolojiler
+
+* **Programlama Dili:** Kotlin
+* **Mimarisi:** MVVM (Model-View-ViewModel)
+* **Android Jetpack:**
+    * LiveData
+    * ViewModel
+    * Room Persistence Library (Veritabanı)
+    * Navigation Component (Fragment navigasyonu)
+    * ViewBinding
+* **Asenkron Programlama:** Kotlin Coroutines
+* **3D Grafik:** Three.js (WebView içinde)
+* **Veri Serileştirme:** Gson (Bahçe durumunu JSON olarak kaydetmek için)
+* **Grafik Kütüphanesi:** MPAndroidChart (İlerleme ekranındaki pasta grafik için)
+* **Animasyonlar:** Lottie (Kutlama ve arayüz animasyonları için)
+* **Yapay Zeka:** Google Gemini API (Görev planlama önerileri için)
+* **UI/UX:** Material Design Components
+
+## 🖼️ Ekran Görüntüleri
+
+*(Bu kısma uygulamanızın temel ekranlarının (Görev Listesi, Pomodoro Zamanlayıcısı, 3D Bahçe, İlerleme Raporu) ekran görüntülerini veya GIF'lerini ekleyebilirsiniz.)*
+
+Örnek:
+`![Bahçe](![garden](https://github.com/user-attachments/assets/456a8a46-e3ba-49b4-9584-7bafe932a4cf))`
+`![Pomodoro Ekranı](![pamodoro](https://github.com/user-attachments/assets/21c82646-4098-4300-a586-f4d39f19fdd7))`
+`![Görev Listesi](![task](https://github.com/user-attachments/assets/cc48da4e-8714-4175-b539-969d88be40ec))`
+`![İlerleme Raporu](![ilerleme](https://github.com/user-attachments/assets/dccacc24-3610-4513-be76-15be7e870a56))`
+
+## 🧩 Modüller ve Ana Bileşenler
+
+* **`data` Paketi:** Room veritabanı varlıkları (Task, Tree, Drop), DAO (Data Access Object) arayüzleri, AppDatabase sınıfı ve `GardenObjectData`, `DailyTaskSummary` gibi veri sınıflarını içerir.
+* **`tasks` Paketi:**
+    * `TaskViewModel`: Görevlerle ilgili tüm mantığı yönetir, Room veritabanı ile etkileşime girer, LiveData'ları günceller.
+    * `TaskListFragment`: Kullanıcının görevlerini listeler, yeni görev eklemesine olanak tanır, Gemini AI önerilerini tetikler.
+    * `TaskListAdapter`: RecyclerView için görev listesini yönetir.
+    * `PomodoroFragment`: Seçilen görev için Pomodoro zamanlayıcısını çalıştırır.
+* **`progress` Paketi (ve `GardenFragment`):**
+    * `GardenViewModel`: 3D bahçe durumunu (JSON ve LiveData üzerinden), su damlalarını ve bahçedeki ağaç bilgilerini yönetir. Three.js ile Android arasındaki köprüyü kurar.
+    * `GardenFragment`: WebView içinde Three.js ile oluşturulan 3D bahçe sahnesini görüntüler. Kullanıcı etkileşimlerini (`placeObject`, `waterPlant` vb.) `GardenViewModel`'e iletir.
+    * `ProgressFragment`: Haftalık görev özetini (pasta grafik), bahçe istatistiklerini ve günlük odaklanma süresini gösterir.
+* **Room Veritabanı (`AppDatabase`):** `Task`, `Tree`, `Drop` varlıklarını saklar.
+* **3D Sahne (`garden_scene.html`):** Three.js kullanarak 3D bahçeyi oluşturur ve Android tarafından sağlanan verilerle güncellenir. `WebAppInterface` aracılığıyla Android ile iletişim kurar.
+* **Navigation (`main_nav.xml`):** Uygulama içindeki Fragment'lar arası geçişleri yönetir.
+
+## 🚀 Kurulum ve Çalıştırma
+
+1.  Projeyi Android Studio'da klonlayın veya indirin.
+2.  **ÖNEMLİ:** Gemini AI özelliklerini kullanabilmek için kendi Google Gemini API anahtarınızı almanız gerekmektedir.
+    * `TaskListFragment.kt` dosyasını açın.
+    * `HARDCODED_GEMINI_API_KEY` sabitini kendi API anahtarınızla değiştirin:
+        ```kotlin
+        private val HARDCODED_GEMINI_API_KEY = "YOUR_ACTUAL_GEMINI_API_KEY"
+        ```
+    * **Not:** API anahtarlarını doğrudan koda gömmek güvenlik açısından önerilmez. Üretim uygulamalarında anahtarları `local.properties` dosyası üzerinden veya daha güvenli yöntemlerle yönetmek daha doğrudur.
+3.  Projeyi derleyin ve bir Android emülatörde veya fiziksel bir cihazda çalıştırın. (Minimum API Seviyesi: Android Lollipop / API 21 veya projenizin belirttiği seviye)
