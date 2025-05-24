@@ -72,14 +72,3 @@ Florada, Pomodoro tekniğini kullanarak görev yönetimi ve odaklanma süresini 
 * **3D Sahne (`garden_scene.html`):** Three.js kullanarak 3D bahçeyi oluşturur ve Android tarafından sağlanan verilerle güncellenir. `WebAppInterface` aracılığıyla Android ile iletişim kurar.
 * **Navigation (`main_nav.xml`):** Uygulama içindeki Fragment'lar arası geçişleri yönetir.
 
-## 🚀 Kurulum ve Çalıştırma
-
-1.  Projeyi Android Studio'da klonlayın veya indirin.
-2.  **ÖNEMLİ:** Gemini AI özelliklerini kullanabilmek için kendi Google Gemini API anahtarınızı almanız gerekmektedir.
-    * `TaskListFragment.kt` dosyasını açın.
-    * `HARDCODED_GEMINI_API_KEY` sabitini kendi API anahtarınızla değiştirin:
-        ```kotlin
-        private val HARDCODED_GEMINI_API_KEY = "YOUR_ACTUAL_GEMINI_API_KEY"
-        ```
-    * **Not:** API anahtarlarını doğrudan koda gömmek güvenlik açısından önerilmez. Üretim uygulamalarında anahtarları `local.properties` dosyası üzerinden veya daha güvenli yöntemlerle yönetmek daha doğrudur.
-3.  Projeyi derleyin ve bir Android emülatörde veya fiziksel bir cihazda çalıştırın. (Minimum API Seviyesi: Android Lollipop / API 21 veya projenizin belirttiği seviye)
